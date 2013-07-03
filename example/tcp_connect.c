@@ -11,6 +11,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -3255,7 +3256,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
  void* WavePacketSend(void *arg)
 {
         int Loopi, waveLen;
-        int rand_value = 0,IpRet;
+        int rand_value = 0,PingRet,IpRet,RunCount=100;
         unsigned char transBuffer[WAVE_BUFF_LEN];
         unsigned char sendfilename[30];
         unsigned char openfilename[30];
@@ -3269,50 +3270,40 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
         DIR   *   dir;
         struct   dirent   *   ptr;
 
-        FILE *fd_mac;
-        char macaddr_cmd[50];
-        char snrnum_temp[20];
-        /*打开vdc号的文件*/
-        fd_mac = fopen("/tmp/macaddr","r+");
-        if(fd_mac == NULL)
-        {
-            DebugPrintf("\n-----error: open /tmp/macaddr failed-----");
-        }
-        else
-        {
-            /*vdc号12位*/
-            fscanf(fd_mac,"%s",snrnum_temp);
-            fclose(fd_mac);
-            strcpy(snrnum, snrnum_temp);
-            snrnum[12] = '\0';
-        }
-
-        DebugPrintf("\n-----snrnum = %s-----", snrnum);
-        sprintf(macaddr_cmd,"ifconfig eth0 hw ether %.2s:%.2s:%.2s:%.2s:%.2s:%.2s",snrnum_temp,snrnum_temp+2,snrnum_temp+4,snrnum_temp+6,snrnum_temp+8,snrnum_temp+10);
-        DebugPrintf("\n-----%s-----",macaddr_cmd);
-        DebugPrintf("\n");
-
-#if RELEASE_MODE
-        system("sleep 1");
-        system("ifconfig eth0 down ");
-        system(macaddr_cmd);
-        system("ifconfig eth0 up");
-        system("sleep 5");
-#if STATIC_IP
-        net_configure();
-#else
-        /*动态获取IP、子网掩码、网关、DNS*/
-        IpRet = system("udhcpc &");
-        PrintScreen("IpRet1 = %d\n",IpRet);
-        IpRet = system("udhcpc ");
-        PrintScreen("IpRet2 = %d\n",IpRet);
-#endif
-#endif
         beginsyncbmp = 1;
         startsyncbmp = 1;
 
         while (1)
         {
+            RunCount++;
+            if(RunCount>=2000)
+            {
+                /*动态获取IP*/
+                do{
+                    /*检测是否与服务器连接*/
+                    PingRet = system("ping 58.192.119.146");
+                    PrintScreen("\n----- PingRet = %d -----\n",PingRet);
+                    if((PingRet!=-1)&&(WIFEXITED(PingRet))&&(WEXITSTATUS(PingRet)==0))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        PrintScreen("\n----- ping server failed! -----");
+                    }
+
+                    IpRet = system("udhcpc -t 10 -T 5 -n");
+                    sleep(1);
+                    PrintScreen("\n----- IpRet = %d -----\n",IpRet);
+                    if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
+                    {
+                        PrintScreen("\n----- got ip successfully! -----\n");
+                        break;
+                    }
+                }
+                while(1);
+                RunCount = 0;
+            }
             /////////////////////////////////////////////////
 
             //self_check(action_fd);
