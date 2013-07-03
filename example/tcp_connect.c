@@ -3256,7 +3256,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
  void* WavePacketSend(void *arg)
 {
         int Loopi, waveLen;
-        int rand_value = 0,PingRet,IpRet,RunCount=100;
+        int rand_value = 0,PingServerRet,PingGateRet,IpRet,IpFlag=0;
         unsigned char transBuffer[WAVE_BUFF_LEN];
         unsigned char sendfilename[30];
         unsigned char openfilename[30];
@@ -3275,34 +3275,56 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
 
         while (1)
         {
-            RunCount++;
-            if(RunCount>=2000)
+            ReadSysTime();
+            if(sys_tm->tm_sec==0)
             {
                 /*动态获取IP*/
-                do{
-                    /*检测是否与服务器连接*/
-                    PingRet = system("ping 58.192.119.146");
-                    PrintScreen("\n----- PingRet = %d -----\n",PingRet);
-                    if((PingRet!=-1)&&(WIFEXITED(PingRet))&&(WEXITSTATUS(PingRet)==0))
-                    {
-                        break;
+                if(IpFlag==0)
+                {
+                    do{
+                        {
+                            /*检测是否与服务器连接*/
+                            PingServerRet = system("ping 58.192.119.146");
+                            PingGateRet = system("ping 223.3.32.1");
+#if RELEASE_MODE
+#else
+                            PrintScreen("\n----- PingServerRet = %d -----\n",PingRet);
+#endif
+                            /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+                            if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
+                               (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
+                            {
+                                IpFlag = 1;
+                                break;
+                            }
+                            /*网络不通则动态获取IP*/
+                            else
+                            {
+                                PrintScreen("\n----- ping server and gate failed! -----");
+                                do{
+                                    IpRet = system("udhcpc -t 10 -T 3 -n -q &");
+                                    /*休眠，用于控制获取的频率*/
+                                    sleep(1);
+#if RELEASE_MODE
+#else
+                                    PrintScreen("\n----- IpRet = %d -----\n",PingRet);
+#endif
+                                    if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
+                                    {
+                                        break;
+                                    }
+                                }
+                                while(1);
+                            }
+                        }
                     }
-                    else
-                    {
-                        PrintScreen("\n----- ping server failed! -----");
-                    }
-
-                    IpRet = system("udhcpc -t 10 -T 5 -n");
-                    sleep(1);
-                    PrintScreen("\n----- IpRet = %d -----\n",IpRet);
-                    if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
-                    {
-                        PrintScreen("\n----- got ip successfully! -----\n");
-                        break;
-                    }
+                    while(1);
                 }
-                while(1);
-                RunCount = 0;
+            }
+            else
+            {
+                //PrintScreen("\nelse IpFlag = %d\n",IpFlag);
+                IpFlag = 0;
             }
             /////////////////////////////////////////////////
 
@@ -3314,7 +3336,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
             //}
             /*********************** err check send *******************************/
             board_check(transBuffer);
-            /************************************************************************/
+            /**********************************************************************/
 
             if(sttConnSock->fdSock <= 0)
             {
@@ -3615,7 +3637,6 @@ static  void sync_card()
 #define FREQ_LOW  100000
 #define CARD_LIMIT	5
 #define ADDR_BEGIN      60
-
 
 void* WatchDog(void *arg)
 {
