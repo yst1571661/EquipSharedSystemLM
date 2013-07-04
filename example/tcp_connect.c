@@ -3288,7 +3288,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                             PingGateRet = system("ping 223.3.32.1");
 #if RELEASE_MODE
 #else
-                            PrintScreen("\n----- PingServerRet = %d -----\n",PingRet);
+                            PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
 #endif
                             /*ping 服务器及网关，只要有一个通就说明网络是通的*/
                             if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
@@ -3307,7 +3307,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                                     sleep(1);
 #if RELEASE_MODE
 #else
-                                    PrintScreen("\n----- IpRet = %d -----\n",PingRet);
+                                    PrintScreen("\n----- IpRet = %d -----\n",IpRet);
 #endif
                                     if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
                                     {
@@ -3357,9 +3357,6 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                 else
                 DebugPrintf("\n-------begin to syncbmp--------");
 
-                //rand_value = rand() % (RANDOM_MAX + 1);
-                //DebugPrintf( "\n-----begin  d_name:   %s-----\n ",   syncbeginFname);
-                //DebugPrintf( "\n-----end  d_name:   %s-----\n ",   syncendFname);
                 dir   =opendir( "/mnt/work/");
                 while((ptr = readdir(dir)) != NULL && sttConnSock[0].fdSock > 0)
                         {
@@ -3374,14 +3371,6 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                     transBuffer[2] = 0x06;
                     //memcpy(sendfilename,ptr-> d_name,12);  //去掉".bmp"
                     memcpy(sendfilename,ptr-> d_name,14);
-                    /*
-                    transBuffer[3] = (sendfilename[0] - 48)*10 + sendfilename[1] - 48;//字符串文件名201011130953转化为字节发送20 10 11 13 09 53
-                    transBuffer[4] = (sendfilename[2] - 48)*10 + sendfilename[3] - 48;
-                    transBuffer[5] = (sendfilename[4] - 48)*10 + sendfilename[5] - 48;
-                    transBuffer[6] = (sendfilename[6] - 48)*10 + sendfilename[7] - 48;
-                    transBuffer[7] = (sendfilename[8] - 48)*10 + sendfilename[9] - 48;
-                    transBuffer[8] = (sendfilename[10] - 48)*10 + sendfilename[11] - 48;
-                    */
                     transBuffer[8] = (sendfilename[12] - 48)*10 + sendfilename[13] - 48;//字符串文件名20101113095327转化为字节发送 10 11 13 09 53 27
                     transBuffer[3] = (sendfilename[2] - 48)*10 + sendfilename[3] - 48;
                     transBuffer[4] = (sendfilename[4] - 48)*10 + sendfilename[5] - 48;
@@ -3818,7 +3807,7 @@ void* CardPacketSend(void *arg)         //查询参数
                 if(backup_flag==0)
                 {
                     DebugPrintf("\n-----Have Backup Log-----\n");
-                    char *SysCmd=malloc(30);
+                    char *SysCmd=malloc(50);
                     sprintf(SysCmd,"cp %s %s",LOGFILETMPDIR,LOGFILEBACKDIR);
                     system(SysCmd);
                     backup_flag = 1;
