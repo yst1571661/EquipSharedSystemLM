@@ -4171,7 +4171,7 @@ void* CardPacketSend(void *arg)         //查询参数
             if(CardPacketSend_count == 500)								//定时打印线程运行
             {
                 CardPacketSend_count = 0;
-                DebugPrintf("\n----- CardPacketSend_thread running -----");
+                PrintScreen("\n----- CardPacketSend_thread running -----");
             }
         }
 
