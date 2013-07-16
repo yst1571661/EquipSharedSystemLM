@@ -3828,8 +3828,22 @@ void* CardPacketSend(void *arg)         //查询参数
             /*需要重启读卡器*/
             if ((cur_cardsnr == -2)&&!beginupload)
             {
+                card_errcount++;
+                if(card_errcount>=20)
+                {
+#if RELEASE_MODE
+                    PrintScreen("\n----Ready to Reboot----\n");
+                    system("cp /tmp/local.log /mnt/local.log");
+                    sleep(3);
+                    system("reboot");
+#endif
+                }
                 close_card_uart();
                 init_card_uart();
+            }
+            else
+            {
+                card_errcount = 0;
             }
 
             /*老版本的dc_reset失败时返回1，目前版本没用*/

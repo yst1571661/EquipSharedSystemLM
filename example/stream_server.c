@@ -566,6 +566,7 @@ int main(int argc, char * argv[])
     device_mode = 0x01;							//default open mode
     beginsendbmp = 1;
     beginupload = 0;
+    card_errcount = 0;
     reboot_flag=0;
 
     if (read_at24c02b(225) == 11)
