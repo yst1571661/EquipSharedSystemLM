@@ -3316,9 +3316,9 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                             {
                                 PrintScreen("\n----- ping server and gate failed! -----\n");
                                 do{
-                                    IpRet = system("udhcpc -t 10 -T 3 -n -q &");
+                                    IpRet = system("udhcpc -t 10 -T 3 -n -q");
                                     /*休眠，用于控制获取的频率*/
-                                    sleep(1);
+                                    //sleep(1);
 #if RELEASE_MODE
 #else
                                     PrintScreen("\n----- IpRet = %d -----\n",IpRet);
