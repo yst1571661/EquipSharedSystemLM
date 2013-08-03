@@ -18,7 +18,7 @@ int init_card_uart()
 {
         int i,st;
         int par=1;
-        long baud=115200;
+        long baud=9600;
         static unsigned char buff[16];
         static unsigned char data[16];
         unsigned char tk[6]={
