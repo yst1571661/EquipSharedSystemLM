@@ -174,6 +174,8 @@ void* WavePacketSend(void *arg);
 
 void* CardPacketSend(void *arg);
 
+void* GetIp(void *arg);
+
 typedef void* ptexec(void *arg);
 
 int WorkThreadCreate(ptexec threadexec, int prio);

@@ -1455,26 +1455,32 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
                 software_seqtmp+= (dataBuffer[5]<<8)&0xFF00;
                 software_seqtmp += (dataBuffer[6])&0xFF;
 
-#if DEBUG_DATA
+//#if DEBUG_DATA
                 DebugPrintf("\nsoftware_seq=%d\nsoftware_seqtmp=%d",software_seq,software_seqtmp);
-#endif
+//#endif
                 /*for saving file/cmd name*/
                 char cmdtmp[20],soft_nametmp[20];
                 unsigned int RetWrite;
                 FILE *fp;
                 /*当前有人在上机*/
-                if(led_state==1)
+/*                if(led_state==1)
                 {
                     beginupload = 0;
 #if DEBUG_DATA
                     DebugPrintf("\nThis meachine is used!!!!",software_seq,software_seqtmp);
 #endif
-                    ansData[0] = 0xff;
+                    ansData[0] = 0x00;
+                    //ansData[0] = 0xff;
                 }
-                /*the first packet*/
-                else if(software_seqtmp==0)
+*/
+              /*the first packet*/
+                if(software_seqtmp==0)
                 /**************在此接受程序***************/
                 {
+                    if(led_state==1)
+                    {
+                        DebugPrintf("\nThis meachine is used!!!!");
+                    }
                     /*清除上次的临时文件*/
                     system("rm /tmp/Tmp*");
                     sprintf(soft_nametmp,"/tmp/Tmp_Soft");
@@ -1485,7 +1491,7 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
 
                     if(fclose(fp)!=0)
                     {
-                            perror("\nFile Close Error!");
+                        perror("\nFile Close Error!");
                     }
                     //system("cat /tmp/Tmp_Soft");
 
@@ -1496,7 +1502,7 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
                     byte_all += (dataBuffer[2]<<16)&0xFF0000;
                     byte_all += (dataBuffer[3]<<8)&0xFF00;
                     byte_all += (dataBuffer[4])&0xFF;
-#if DEBUG_CONN
+#if DEBUG_DATA
                     DebugPrintf("\nWRITE:%dBYTES",RetWrite);
                     DebugPrintf("\nPROGRAM SIZE:%d BYTE",byte_all);
 #endif
@@ -1572,8 +1578,8 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
                 CRC_server += (dataBuffer[8])&0xFF;
 
 #if DEBUG_DATA
-                //DebugPrintf("\nALL BYTE = %d\nCRC_server=%x\nCRC_local=%x",CRC_server,CRC_local);
-                //PrintScreen("\nALL BYTE = %d\nCRC_server=%x\nCRC_local=%x",CRC_server,CRC_local);
+                DebugPrintf("\nALL BYTE = %d\nCRC_server=%x\nCRC_local=%x",CRC_server,CRC_local);
+                PrintScreen("\nALL BYTE = %d\nCRC_server=%x\nCRC_local=%x",CRC_server,CRC_local);
 #endif
                 if(CRC_server!=CRC_local)
                 {
@@ -3020,13 +3026,9 @@ static void card_sent(unsigned char *transBuffer)
 #if DEBUG_DATA
                             DebugPrintf("\nthis record is illegal!");
 #endif
-                            PrintScreen("&");
                             pthread_mutex_lock(&cardfile_lock);
-                            PrintScreen("*");
                             gdbm_delete(gdbm_card, key);
-                            PrintScreen("(");
                             pthread_mutex_unlock(&cardfile_lock);
-                            PrintScreen(")");
                             break;
                     }
                     memcpy(transBuffer+3, cardrecordre, strlen(cardrecordre));
@@ -3263,7 +3265,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
  void* WavePacketSend(void *arg)
 {
         int Loopi, waveLen;
-        int rand_value = 0,IpRet,IpFlag=0,PingServerRet,PingGateRet;
+        int rand_value = 0;
         unsigned char transBuffer[WAVE_BUFF_LEN];
         unsigned char sendfilename[30];
         unsigned char openfilename[30];
@@ -3288,57 +3290,6 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                 continue;
             }
 
-            ReadSysTime();
-            if(sys_tm->tm_sec==0)
-            {
-                /*动态获取IP*/
-                if(IpFlag==0)
-                {
-                    do{
-                        {
-                            /*检测是否与服务器连接*/
-                            PingServerRet = system("ping 58.192.119.146");
-                            PingGateRet = system("ping 223.3.32.1");
-#if RELEASE_MODE
-#else
-                            PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
-                            PrintScreen("\n----- PingGateRet = %d -----\n",PingGateRet);
-#endif
-                            /*ping 服务器及网关，只要有一个通就说明网络是通的*/
-                            if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
-                               (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
-                            {
-                                IpFlag = 1;
-                                break;
-                            }
-                            /*网络不通则动态获取IP*/
-                            else
-                            {
-                                PrintScreen("\n----- ping server and gate failed! -----\n");
-                                do{
-                                    IpRet = system("udhcpc -t 10 -T 3 -n -q");
-                                    /*休眠，用于控制获取的频率*/
-                                    //sleep(1);
-#if RELEASE_MODE
-#else
-                                    PrintScreen("\n----- IpRet = %d -----\n",IpRet);
-#endif
-                                    if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
-                                    {
-                                        break;
-                                    }
-                                }
-                                while(1);
-                            }
-                        }
-                    }
-                    while(1);
-                }
-            }
-            else
-            {
-                IpFlag = 0;
-            }
             /////////////////////////////////////////////////
 
             /*********************** err check send *******************************/
@@ -3354,6 +3305,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
             {
                 if(sttConnSock->fdSock <= 0)
                 {
+                    DebugPrintf("\nsocket release,break while\n");
                     break;
                 }
                 else
@@ -3648,6 +3600,62 @@ void* WatchDog(void *arg)
     }
 }
 
+void* GetIp(void *arg)
+{
+    int IpRet,IpFlag=0,PingServerRet,PingGateRet;
+    int Loopi=0,PidGetIp=0;
+    char cmd[30];
+    /*动态获取IP*/
+    do{
+        /*检测是否与服务器连接*/
+        DebugPrintf("\nping server and gate\n");
+        PingServerRet = system("ping 58.192.119.146");
+        PingGateRet = system("ping 223.3.32.1");
+#if RELEASE_MODE
+#else
+        PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
+        PrintScreen("\n----- PingGateRet = %d -----\n",PingGateRet);
+#endif
+        /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+        if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
+           (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
+        {
+            //break;
+        }
+        /*网络不通则动态获取IP*/
+        else
+        {
+            //do{
+                if((PidGetIp = fork())<0)
+                {
+                    PrintScreen("\n----fork udhcpc error!----\n");
+                    DebugPrintf("\n----fork udhcpc error!----\n");
+                }
+                else if(PidGetIp == 0)
+                {
+                    IpRet = execl("/sbin/udhcpc","udhcpc","-q",(char*)0);
+                    PrintScreen("IpRet = %d\n",IpRet);
+                }
+                PrintScreen("PidGetIp = %d\n",PidGetIp);
+                /*休眠，用于控制获取的频率*/
+#if RELEASE_MODE
+#else
+                PrintScreen("\n----- IpRet = %d -----\n",IpRet);
+#endif
+/*                if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
+                {
+                    break;
+                }*/
+            //}
+            //while(1);
+        }
+        sleep(20);
+        sprintf(cmd,"kill %d",PidGetIp);
+        system(cmd);
+        PrintScreen("\n----- ping server and gate failed! -----\n");
+    }
+    while(1);
+}
 
 void* CardPacketSend(void *arg)         //查询参数
 {

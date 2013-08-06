@@ -761,6 +761,13 @@ int main(int argc, char * argv[])
         exit(0);
     }
 
+    if (WorkThreadCreate(GetIp, 0))        	//start the synchronization pictures thread
+    {
+        perror("\n------------Thread GetIp create error");
+        fflush(stdout);
+        exit(0);
+    }
+
     if (WorkThreadCreate(WavePacketSend, 0))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread WavePacketSend create error");
