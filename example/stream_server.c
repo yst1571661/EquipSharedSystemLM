@@ -761,7 +761,7 @@ int main(int argc, char * argv[])
         exit(0);
     }
 
-    if (WorkThreadCreate(GetIp, 0))        	//start the synchronization pictures thread
+    if (WorkThreadCreate(DynamicGetIp, 0))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread GetIp create error");
         fflush(stdout);

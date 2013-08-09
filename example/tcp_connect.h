@@ -174,7 +174,7 @@ void* WavePacketSend(void *arg);
 
 void* CardPacketSend(void *arg);
 
-void* GetIp(void *arg);
+void* DynamicGetIp(void *arg);
 
 typedef void* ptexec(void *arg);
 

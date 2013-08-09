@@ -353,6 +353,8 @@ static void HeartbeatInit(int frequency, int alarmcnts)
     sa.sa_handler = SIG_IGN;
     /*收到SIGPIPE信号则去执行SIG_IGN函数*/
     sigaction(SIGPIPE, &sa, 0);
+    /*在reader中止之后写Pipe的时候发送  捕捉SIGPIPE 处理函数SIG_IGN(忽略)*/
+    sigaction(SIGCHLD, &sa, 0);
 }
 
 static int HandleNewConn(int fdListen)
@@ -3600,7 +3602,7 @@ void* WatchDog(void *arg)
     }
 }
 
-void* GetIp(void *arg)
+void* DynamicGetIp(void *arg)
 {
     int IpRet,IpFlag=0,PingServerRet,PingGateRet;
     int Loopi=0,PidGetIp=0;
@@ -3625,34 +3627,31 @@ void* GetIp(void *arg)
         /*网络不通则动态获取IP*/
         else
         {
-            //do{
-                if((PidGetIp = fork())<0)
-                {
-                    PrintScreen("\n----fork udhcpc error!----\n");
-                    DebugPrintf("\n----fork udhcpc error!----\n");
-                }
-                else if(PidGetIp == 0)
-                {
-                    IpRet = execl("/sbin/udhcpc","udhcpc","-q",(char*)0);
-                    PrintScreen("IpRet = %d\n",IpRet);
-                }
-                PrintScreen("PidGetIp = %d\n",PidGetIp);
-                /*休眠，用于控制获取的频率*/
+            PrintScreen("\n----- ping server and gate failed! -----\n");
+            DebugPrintf("\n----- ping server and gate failed! -----\n");
+            if((PidGetIp = fork())<0)
+            {
+                PrintScreen("\n----fork udhcpc error!----\n");
+                DebugPrintf("\n----fork udhcpc error!----\n");
+            }
+            else if(PidGetIp == 0)
+            {
+                if((IpRet = execl("/sbin/udhcpc","udhcpc","-q",(char*)0)) < 0 )
+                    perror("\nexecle error\n");
+                PrintScreen("IpRet = %d\n",IpRet);
+            }
+
+            if(waitpid(PidGetIp,NULL,0)<0)
+                perror("\nwait error\n");
+            PrintScreen("PidGetIp = %d\n",PidGetIp);
 #if RELEASE_MODE
 #else
                 PrintScreen("\n----- IpRet = %d -----\n",IpRet);
 #endif
-/*                if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
-                {
-                    break;
-                }*/
-            //}
-            //while(1);
         }
         sleep(20);
-        sprintf(cmd,"kill %d",PidGetIp);
-        system(cmd);
-        PrintScreen("\n----- ping server and gate failed! -----\n");
+        //sprintf(cmd,"kill %d",PidGetIp);
+        //system(cmd);
     }
     while(1);
 }
