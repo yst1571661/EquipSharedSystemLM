@@ -3256,7 +3256,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
  void* WavePacketSend(void *arg)
 {
         int Loopi, waveLen;
-        int rand_value = 0,PingServerRet,PingGateRet,IpRet,IpFlag=0;
+        int rand_value = 0,PingServerRet,PingGateRet,IpRet,IpFlag=0,PidGetIp;
         unsigned char transBuffer[WAVE_BUFF_LEN];
         unsigned char sendfilename[30];
         unsigned char openfilename[30];
@@ -3282,40 +3282,45 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                 if(IpFlag==0)
                 {
                     do{
+                        /*检测是否与服务器连接*/
+                        DebugPrintf("\nping server and gate\n");
+                        PingServerRet = system("ping 58.192.119.146");
+                        PingGateRet = system("ping 223.3.32.1");
+                #if RELEASE_MODE
+                #else
+                        PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
+                        PrintScreen("\n----- PingGateRet = %d -----\n",PingGateRet);
+                #endif
+                        /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+                        if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
+                           (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
                         {
-                            /*检测是否与服务器连接*/
-                            PingServerRet = system("ping 58.192.119.146");
-                            PingGateRet = system("ping 223.3.32.1");
-#if RELEASE_MODE
-#else
-                            PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
-#endif
-                            /*ping 服务器及网关，只要有一个通就说明网络是通的*/
-                            if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
-                               (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
+                            //break;
+                        }
+                        /*网络不通则动态获取IP*/
+                        else
+                        {
+                            PrintScreen("\n----- ping server and gate failed! -----\n");
+                            DebugPrintf("\n----- ping server and gate failed! -----\n");
+                            if((PidGetIp = fork())<0)
                             {
-                                IpFlag = 1;
-                                break;
+                                PrintScreen("\n----fork udhcpc error!----\n");
+                                DebugPrintf("\n----fork udhcpc error!----\n");
                             }
-                            /*网络不通则动态获取IP*/
-                            else
+                            else if(PidGetIp == 0)
                             {
-                                PrintScreen("\n----- ping server and gate failed! -----");
-                                do{
-                                    IpRet = system("udhcpc -t 10 -T 3 -n -q &");
-                                    /*休眠，用于控制获取的频率*/
-                                    sleep(1);
-#if RELEASE_MODE
-#else
-                                    PrintScreen("\n----- IpRet = %d -----\n",IpRet);
-#endif
-                                    if((IpRet!=-1)&&(WIFEXITED(IpRet))&&(WEXITSTATUS(IpRet)==0))
-                                    {
-                                        break;
-                                    }
-                                }
-                                while(1);
+                                if((IpRet = execl("/sbin/udhcpc","udhcpc","-q",(char*)0)) < 0 )
+                                    perror("\nexecle error\n");
+                                PrintScreen("IpRet = %d\n",IpRet);
                             }
+
+                            if(waitpid(PidGetIp,NULL,0)<0)
+                                perror("\nwait error\n");
+                            PrintScreen("PidGetIp = %d\n",PidGetIp);
+                #if RELEASE_MODE
+                #else
+                                PrintScreen("\n----- IpRet = %d -----\n",IpRet);
+                #endif
                         }
                     }
                     while(1);
