@@ -158,6 +158,10 @@ int Led_delay;
 int Led_on;
 int Led_off;
 
+int PidGetIp;
+int PingServerRet;
+int PingGateRet;
+
 void ReadSysTime(void);
 
 unsigned int CRC_check(char bs[],int off,int len);

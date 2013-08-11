@@ -3576,11 +3576,13 @@ static  void sync_card()
 #define CARD_LIMIT	5
 #define ADDR_BEGIN      60
 
+
 void* WatchDog(void *arg)
 {
-    int IpFlag=0,PingServerRet,PingGateRet;
-    int Loopi=0,PidGetIp=0;
+    int IpFlag=0;
+    int Loopi=0;
     int LoopTime=0;
+    char cmd[30];
     while(1)
     {
         Loopi++;
@@ -3592,21 +3594,37 @@ void* WatchDog(void *arg)
         ReadSysTime();
         if(sys_tm->tm_sec<=4)
         {
-            /*检测是否与服务器连接*/
-            DebugPrintf("\nping server and gate\n");
-            PingServerRet = system("ping 58.192.119.146");
-            PingGateRet = system("ping 223.3.32.1");
             /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+#if RELEASE_MODE
+#else
+        PrintScreen("\n----- PingServerRet1 = %d -----\n",PingServerRet);
+        PrintScreen("\n----- PingGateRet1 = %d -----\n",PingGateRet);
+#endif
             if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
                (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
             {
+                IpFlag = 0;
                 LoopTime = 0;
                 PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
             }
             else
             {
+                /*检测动态获取线程是否僵死，若长时间无反映则kill掉该进程*/
+                if(PidGetIp!=0)
+                {
+                    IpFlag++;
+                    PrintScreen("\n----Ip Get Times = %d----\n",IpFlag);
+                    if(IpFlag>=5)
+                    {
+                        IpFlag = 0;
+                        sprintf(cmd,"kill %d",PidGetIp);
+                        system(cmd);
+                    }
+                }
 #if RELEASE_MODE
+                DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_sec = %d\n",
+                            LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
 #else
                 PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
@@ -3621,7 +3639,7 @@ void* WatchDog(void *arg)
                     system("reboot");
                 }
             }
-            sleep(4);
+            sleep(5);
         }
         else
         {
@@ -3632,9 +3650,12 @@ void* WatchDog(void *arg)
 
 void* DynamicGetIp(void *arg)
 {
-    int IpRet,IpFlag=0,PingServerRet,PingGateRet;
-    int Loopi=0,PidGetIp=0;
+    int IpRet;
+    int Loopi=0;
     int LoopTime=0;
+    PidGetIp = 0;
+    PingServerRet=-1;
+    PingGateRet=-1;
     /*动态获取IP*/
     do{
         /*检测是否与服务器连接*/
@@ -3650,7 +3671,7 @@ void* DynamicGetIp(void *arg)
         if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
            (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
         {
-            //break;
+
         }
         /*网络不通则动态获取IP*/
         else
@@ -3664,7 +3685,7 @@ void* DynamicGetIp(void *arg)
             }
             else if(PidGetIp == 0)
             {
-                if((IpRet = execl("/sbin/udhcpc","udhcpc","-q",(char*)0)) < 0 )
+                if((IpRet = execl("/sbin/udhcpc","udhcpc","-t","20","-T","3","-q",(char*)0)) < 0 )
                     perror("\nexecle error\n");
                 PrintScreen("IpRet = %d\n",IpRet);
             }
@@ -3672,6 +3693,7 @@ void* DynamicGetIp(void *arg)
             if(waitpid(PidGetIp,NULL,0)<0)
                 perror("\nwait error\n");
             PrintScreen("PidGetIp = %d\n",PidGetIp);
+            PidGetIp = 0;
 #if RELEASE_MODE
 #else
                 PrintScreen("\n----- IpRet = %d -----\n",IpRet);
