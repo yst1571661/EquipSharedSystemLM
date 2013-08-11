@@ -3588,7 +3588,7 @@ static  void sync_card()
 
 void* WatchDog(void *arg)
 {
-    int IpFlag=0,PingServerRet=-1,PingGateRet=-1;
+    int IpFlag=0;
     int Loopi=0;
     int LoopTime=0;
     char cmd[30];
@@ -3612,6 +3612,7 @@ void* WatchDog(void *arg)
             if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
                (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
             {
+                IpFlag = 0;
                 LoopTime = 0;
                 PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
@@ -3622,7 +3623,7 @@ void* WatchDog(void *arg)
                 if(PidGetIp!=0)
                 {
                     IpFlag++;
-                    PrintScreen("\n----IpGitTimes = %d----\n",IpFlag);
+                    PrintScreen("\n----Ip Get Times = %d----\n",IpFlag);
                     if(IpFlag>=5)
                     {
                         IpFlag = 0;
@@ -3647,7 +3648,7 @@ void* WatchDog(void *arg)
                     system("reboot");
                 }
             }
-            sleep(4);
+            sleep(5);
         }
         else
         {
@@ -3662,6 +3663,8 @@ void* DynamicGetIp(void *arg)
     int Loopi=0;
     int LoopTime=0;
     PidGetIp = 0;
+    PingServerRet=-1;
+    PingGateRet=-1;
     /*动态获取IP*/
     do{
         /*检测是否与服务器连接*/
@@ -3677,7 +3680,7 @@ void* DynamicGetIp(void *arg)
         if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
            (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
         {
-            //break;
+
         }
         /*网络不通则动态获取IP*/
         else
