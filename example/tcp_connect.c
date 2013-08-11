@@ -1633,8 +1633,8 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
 
             beginupload = 0;
 #if DEBUG_DATA
-            DebugPrintf("\nGOING TO REBOOT!");
-            PrintScreen("\nGOING TO REBOOT!");
+            DebugPrintf("\n----Update Successfully!----\n----GOING TO REBOOT!----\n");
+            PrintScreen("\n----Update Successfully!----\n----GOING TO REBOOT!----\n");
 #endif
             reboot_flag = 1;
             return ansData;
@@ -3589,7 +3589,9 @@ static  void sync_card()
 
 void* WatchDog(void *arg)
 {
-    int Loopi=0;
+    int IpFlag=0,PingServerRet,PingGateRet;
+    int Loopi=0,PidGetIp=0;
+    int LoopTime=0;
     while(1)
     {
         Loopi++;
@@ -3598,7 +3600,44 @@ void* WatchDog(void *arg)
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
         system("echo xxx > /dev/watch_dog");
-        sleep(3);
+        ReadSysTime();
+        if(sys_tm->tm_sec<=4)
+        {
+            /*检测是否与服务器连接*/
+            DebugPrintf("\nping server and gate\n");
+            PingServerRet = system("ping 58.192.119.146");
+            PingGateRet = system("ping 223.3.32.1");
+            /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+            if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
+               (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
+            {
+                LoopTime = 0;
+                PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
+                            LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
+            }
+            else
+            {
+#if RELEASE_MODE
+#else
+                PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
+                            LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
+#endif
+                LoopTime++;
+                if((LoopTime>=60)&&((sys_tm->tm_hour<8)||(sys_tm->tm_hour>17)||(sys_tm->tm_wday==0)||(sys_tm->tm_wday==6)))
+                {
+                    PrintScreen("\n-----Net Error!-----\n-----Going to Reboot!-----\n");
+                    DebugPrintf("\n-----Net Error!-----\n-----Going to Reboot!-----\n");
+                    system("cp /tmp/local.log /mnt/log/local.log");
+                    sleep(3);
+                    system("reboot");
+                }
+            }
+            sleep(4);
+        }
+        else
+        {
+            sleep(3);
+        }
     }
 }
 
@@ -3606,7 +3645,7 @@ void* DynamicGetIp(void *arg)
 {
     int IpRet,IpFlag=0,PingServerRet,PingGateRet;
     int Loopi=0,PidGetIp=0;
-    char cmd[30];
+    int LoopTime=0;
     /*动态获取IP*/
     do{
         /*检测是否与服务器连接*/
