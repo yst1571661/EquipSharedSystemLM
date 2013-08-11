@@ -1463,16 +1463,16 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
                 unsigned int RetWrite;
                 FILE *fp;
                 /*当前有人在上机*/
-                if(led_state==1)
+/*                if(led_state==1)
                 {
                     beginupload = 0;
 #if DEBUG_DATA
                     DebugPrintf("\nThis meachine is used!!!!",software_seq,software_seqtmp);
 #endif
                     ansData[0] = 0xff;
-                }
+                }*/
                 /*the first packet*/
-                else if(software_seqtmp==0)
+                if(software_seqtmp==0)
                 /**************在此接受程序***************/
                 {
                     /*清除上次的临时文件*/
@@ -3275,62 +3275,6 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
 
         while (1)
         {
-            ReadSysTime();
-            if(sys_tm->tm_sec==0)
-            {
-                /*动态获取IP*/
-                if(IpFlag==0)
-                {
-                    do{
-                        /*检测是否与服务器连接*/
-                        DebugPrintf("\nping server and gate\n");
-                        PingServerRet = system("ping 58.192.119.146");
-                        PingGateRet = system("ping 223.3.32.1");
-                #if RELEASE_MODE
-                #else
-                        PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
-                        PrintScreen("\n----- PingGateRet = %d -----\n",PingGateRet);
-                #endif
-                        /*ping 服务器及网关，只要有一个通就说明网络是通的*/
-                        if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
-                           (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
-                        {
-                            //break;
-                        }
-                        /*网络不通则动态获取IP*/
-                        else
-                        {
-                            PrintScreen("\n----- ping server and gate failed! -----\n");
-                            DebugPrintf("\n----- ping server and gate failed! -----\n");
-                            if((PidGetIp = fork())<0)
-                            {
-                                PrintScreen("\n----fork udhcpc error!----\n");
-                                DebugPrintf("\n----fork udhcpc error!----\n");
-                            }
-                            else if(PidGetIp == 0)
-                            {
-                                if((IpRet = execl("/sbin/udhcpc","udhcpc","-q",(char*)0)) < 0 )
-                                    perror("\nexecle error\n");
-                                PrintScreen("IpRet = %d\n",IpRet);
-                            }
-
-                            if(waitpid(PidGetIp,NULL,0)<0)
-                                perror("\nwait error\n");
-                            PrintScreen("PidGetIp = %d\n",PidGetIp);
-                #if RELEASE_MODE
-                #else
-                                PrintScreen("\n----- IpRet = %d -----\n",IpRet);
-                #endif
-                        }
-                    }
-                    while(1);
-                }
-            }
-            else
-            {
-                //PrintScreen("\nelse IpFlag = %d\n",IpFlag);
-                IpFlag = 0;
-            }
             /////////////////////////////////////////////////
 
             //self_check(action_fd);
@@ -3634,7 +3578,9 @@ static  void sync_card()
 
 void* WatchDog(void *arg)
 {
-    int Loopi=0;
+    int IpFlag=0,PingServerRet,PingGateRet;
+    int Loopi=0,PidGetIp=0;
+    int LoopTime=0;
     while(1)
     {
         Loopi++;
@@ -3643,8 +3589,97 @@ void* WatchDog(void *arg)
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
         system("echo xxx > /dev/watch_dog");
-        sleep(3);
+        ReadSysTime();
+        if(sys_tm->tm_sec<=4)
+        {
+            /*检测是否与服务器连接*/
+            DebugPrintf("\nping server and gate\n");
+            PingServerRet = system("ping 58.192.119.146");
+            PingGateRet = system("ping 223.3.32.1");
+            /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+            if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
+               (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
+            {
+                LoopTime = 0;
+                PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
+                            LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
+            }
+            else
+            {
+#if RELEASE_MODE
+#else
+                PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
+                            LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
+#endif
+                LoopTime++;
+                if((LoopTime>=60)&&((sys_tm->tm_hour<8)||(sys_tm->tm_hour>17)||(sys_tm->tm_wday==0)||(sys_tm->tm_wday==6)))
+                {
+                    PrintScreen("\n-----Net Error!-----\n-----Going to Reboot!-----\n");
+                    DebugPrintf("\n-----Net Error!-----\n-----Going to Reboot!-----\n");
+                    system("cp /tmp/local.log /mnt/log/local.log");
+                    sleep(3);
+                    system("reboot");
+                }
+            }
+            sleep(4);
+        }
+        else
+        {
+            sleep(3);
+        }
     }
+}
+
+void* DynamicGetIp(void *arg)
+{
+    int IpRet,IpFlag=0,PingServerRet,PingGateRet;
+    int Loopi=0,PidGetIp=0;
+    int LoopTime=0;
+    /*动态获取IP*/
+    do{
+        /*检测是否与服务器连接*/
+        DebugPrintf("\nping server and gate\n");
+        PingServerRet = system("ping 58.192.119.146");
+        PingGateRet = system("ping 223.3.32.1");
+#if RELEASE_MODE
+#else
+        PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
+        PrintScreen("\n----- PingGateRet = %d -----\n",PingGateRet);
+#endif
+        /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+        if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
+           (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
+        {
+            //break;
+        }
+        /*网络不通则动态获取IP*/
+        else
+        {
+            PrintScreen("\n----- ping server and gate failed! -----\n");
+            DebugPrintf("\n----- ping server and gate failed! -----\n");
+            if((PidGetIp = fork())<0)
+            {
+                PrintScreen("\n----fork udhcpc error!----\n");
+                DebugPrintf("\n----fork udhcpc error!----\n");
+            }
+            else if(PidGetIp == 0)
+            {
+                if((IpRet = execl("/sbin/udhcpc","udhcpc","-q",(char*)0)) < 0 )
+                    perror("\nexecle error\n");
+                PrintScreen("IpRet = %d\n",IpRet);
+            }
+
+            if(waitpid(PidGetIp,NULL,0)<0)
+                perror("\nwait error\n");
+            PrintScreen("PidGetIp = %d\n",PidGetIp);
+#if RELEASE_MODE
+#else
+                PrintScreen("\n----- IpRet = %d -----\n",IpRet);
+#endif
+        }
+        sleep(20);
+    }
+    while(1);
 }
 
 

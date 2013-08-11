@@ -170,6 +170,8 @@ void FreeMemForEx();
 
 void* WatchDog(void *arg);
 
+void* DynamicGetIp(void *arg);
+
 void* WavePacketSend(void *arg);
 
 void* CardPacketSend(void *arg);

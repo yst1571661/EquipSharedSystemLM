@@ -760,6 +760,14 @@ int main(int argc, char * argv[])
         fflush(stdout);
         exit(0);
     }
+
+    if (WorkThreadCreate(DynamicGetIp, 0))        	//start the synchronization pictures thread
+    {
+        perror("\n------------Thread DynamicGetIp create error");
+        fflush(stdout);
+        exit(0);
+    }
+
     if (WorkThreadCreate(WavePacketSend, 0))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread WavePacketSend create error");
