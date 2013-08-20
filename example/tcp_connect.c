@@ -20,8 +20,8 @@
 #include <netinet/ether.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#include "tcp_connect.h"
 #include <dirent.h>
+#include "tcp_connect.h"
 #include "xml.h"
 #include "db.h"
 #include "log.h"
@@ -3689,8 +3689,8 @@ void* DynamicGetIp(void *arg)
             DebugPrintf("\n----- ping server and gate failed! -----\n");
             if((PidGetIp = fork())<0)
             {
-                PrintScreen("\n----fork udhcpc error!----\n");
-                DebugPrintf("\n----fork udhcpc error!----\n");
+                perror("\n----fork udhcpc error!----\n");
+                DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
             }
             else if(PidGetIp == 0)
             {
