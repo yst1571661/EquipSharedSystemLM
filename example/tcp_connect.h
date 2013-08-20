@@ -41,7 +41,7 @@ static int gIP_change = 1;
 
 #define NDEBUG  0
 #define STATIC_IP       0
-#define RELEASE_MODE    1
+#define RELEASE_MODE    0
 #define DEBUG_CONN	1
 #define DEBUG_RECV	1
 #define DEBUG_DATA      1
@@ -54,7 +54,7 @@ static int gIP_change = 1;
 #define SCREEN_INFO     1                               //1:output screen	important information	0:don't output information	on screen
 #else
 #define DebugPrintf	printf
-#define SCREEN_INFO     0
+#define SCREEN_INFO     1
 #endif
 
 #if 			SCREEN_INFO
@@ -113,6 +113,7 @@ unsigned long user_version;    //用户数据库版本号
 unsigned long software_version;	//程序版本号
 int user_count;
 int card_errcount;             //连续初始化读卡器错误数
+int reboot_count;              //每天重启次数
 int led_state;
 int device_mode;				//标志设备是开放还是半开放模式 0x01 开放模式	0x00 半开放模式
 /*视频采集参数*/
@@ -178,6 +179,8 @@ void* WavePacketSend(void *arg);
 void* CardPacketSend(void *arg);
 
 void* DynamicGetIp(void *arg);
+
+void ProtectedBoot();
 
 typedef void* ptexec(void *arg);
 

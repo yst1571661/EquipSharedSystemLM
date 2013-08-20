@@ -1813,10 +1813,7 @@ static void* SyncParketExec(void *arg)
                             pthread_mutex_unlock(&conn->lockBuffOut);
                             if(reboot_flag==1)
                             {
-                                PrintScreen("\n----Ready to Reboot----\n");
-                                system("cp /tmp/local.log /mnt/local.log");
-                                sleep(1);
-                                system("reboot");
+                                ProtectedBoot();
                             }
                         }
                         else
@@ -1831,8 +1828,7 @@ static void* SyncParketExec(void *arg)
                         }
                         if(cmdAck[0] == 0x00 && cmdAck[1] == 0x02 && cmdAck[2] == 0x02)
                         {
-                            sleep(1);
-                            system("reboot");
+                            ProtectedBoot();
                         }
                         else if(cmdAck[0] == 0x00 && cmdAck[1] == 0x02 && cmdAck[2] == 0x0b)
                         {
@@ -3603,6 +3599,21 @@ void* WatchDog(void *arg)
         ReadSysTime();
         if(sys_tm->tm_sec<=4)
         {
+            /*在每个小时的第一分钟打印重启次数*/
+            if(sys_tm->tm_min==0)
+            {
+                if(sys_tm->tm_hour!=0)
+                {
+                    PrintScreen("\nReboot Time:*****  %d  *****\n",read_at24c02b(243));
+                    DebugPrintf("\nReboot Time:*****  %d  *****\n",read_at24c02b(243));
+                }
+                else
+                {
+                    /*每天初始化重启次数*/
+                    reboot_count = 0;
+                    write_at24c02b(243,0);
+                }
+            }
             /*ping 服务器及网关，只要有一个通就说明网络是通的*/
 #if RELEASE_MODE
 #else
@@ -3614,7 +3625,7 @@ void* WatchDog(void *arg)
             {
                 IpFlag = 0;
                 LoopTime = 0;
-                PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
+                DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
             }
             else
@@ -3639,13 +3650,11 @@ void* WatchDog(void *arg)
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
 #endif
                 LoopTime++;
-                if((LoopTime>=60)&&((sys_tm->tm_hour<8)||(sys_tm->tm_hour>17)||(sys_tm->tm_wday==0)||(sys_tm->tm_wday==6)))
+                if((LoopTime>=60)&&((sys_tm->tm_hour<8)||(sys_tm->tm_hour>17) || (sys_tm->tm_hour==12) || (sys_tm->tm_wday==0)||(sys_tm->tm_wday==6)))
                 {
-                    PrintScreen("\n-----Net Error!-----\n-----Going to Reboot!-----\n");
-                    DebugPrintf("\n-----Net Error!-----\n-----Going to Reboot!-----\n");
-                    system("cp /tmp/local.log /mnt/log/local.log");
-                    sleep(3);
-                    system("reboot");
+                    PrintScreen("\n-----Net Error!-----\n");
+                    DebugPrintf("\n-----Net Error!-----\n");
+                    ProtectedBoot();
                 }
             }
             sleep(5);
@@ -3659,6 +3668,7 @@ void* WatchDog(void *arg)
 
 void* DynamicGetIp(void *arg)
 {
+    int ForkerrorTime = 0;
     int IpRet;
     int Loopi=0;
     int LoopTime=0;
@@ -3668,7 +3678,6 @@ void* DynamicGetIp(void *arg)
     /*动态获取IP*/
     do{
         /*检测是否与服务器连接*/
-        DebugPrintf("\nping server and gate\n");
         PingServerRet = system("ping 58.192.119.146");
         PingGateRet = system("ping 223.3.32.1");
 #if RELEASE_MODE
@@ -3691,6 +3700,31 @@ void* DynamicGetIp(void *arg)
             {
                 perror("\n----fork udhcpc error!----\n");
                 DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
+                ForkerrorTime++;
+                /*2次重启网络失败就重启终端*/
+                if(ForkerrorTime>=7)
+                {
+                    DebugPrintf("\n-----Too many fork error!-----\n");
+                    ProtectedBoot();
+                }
+                /*2次fork失败就重启网络*/
+                else if(ForkerrorTime>=3)
+                {
+                    /*禁用设备*/
+                    if(system("ifconfig eth0 down")!=0)
+                        DebugPrintf("\nsystem(1) error\n%s\n",strerror(errno));
+
+                    /*激活设备*/
+                    if(system("ifconfig eth0 up")!=0)
+                        DebugPrintf("\nsystem(2) error\n%s\n",strerror(errno));
+
+                    if((PidGetIp = fork())<0)
+                    {
+                        ForkerrorTime++;
+                        perror("\n----fork udhcpc error!----\n");
+                        DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
+                    }
+                }
             }
             else if(PidGetIp == 0)
             {
@@ -3711,6 +3745,30 @@ void* DynamicGetIp(void *arg)
         sleep(20);
     }
     while(1);
+}
+
+
+void ProtectedBoot()
+{
+    char *cmd=malloc(100);
+    /*重启次数加1*/
+    reboot_count++;
+    write_at24c02b(243,reboot_count);
+    /*保存重要数据*/
+    system("cp /tmp/*.xml /mnt");
+    /*保存日志*/
+    sprintf(cmd,"cp %s %s",LOGFILETMPDIR,LOGFILEBACKDIR);
+    system(cmd);
+    free(cmd);
+
+    printf("\n-----Going to Reboot!-----\n");
+    DebugPrintf("\n-----Going to Reboot!-----\n");
+    sleep(2);
+#if RELEASE_MODE
+    system("reboot");
+#else
+    PrintScreen("\n*********reboot**********\n");
+#endif
 }
 
 void* CardPacketSend(void *arg)         //查询参数
@@ -3904,10 +3962,7 @@ void* CardPacketSend(void *arg)         //查询参数
                 if(card_errcount>=20)
                 {
 #if RELEASE_MODE
-                    PrintScreen("\n----Ready to Reboot----\n");
-                    system("cp /tmp/local.log /mnt/local.log");
-                    sleep(3);
-                    system("reboot");
+                    ProtectedBoot();
 #endif
                 }
                 close_card_uart();
@@ -4536,8 +4591,7 @@ void* CardPacketSend(void *arg)         //查询参数
         }
     }
     DebugPrintf("\n-----CardPacketSend Thread exit-----");
-    sleep(1);
-    system("reboot");
+    ProtectedBoot();
 }
 
 
@@ -4615,15 +4669,15 @@ int GetIpaddr() // 获取本地IP
 
         if((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
         {
-                DebugPrintf("\nsock error \n");
-                return -1;
+            DebugPrintf("\nsock error \n%s\n",strerror(errno));
+            return -1;
         }
         strcpy(ifr.ifr_name, "eth0");
         /*取本机IP地址*/
         if(ioctl(sock, SIOCGIFADDR, &ifr) < 0)
         {
-                DebugPrintf("\nioctl SIOCGIFADDR \n");
-                return -1;
+            DebugPrintf("\nioctl SIOCGIFADDR \n%s\n",strerror(errno));
+            return -1;
         }
         my_ip->sin_addr = ((struct sockaddr_in *)(&ifr.ifr_addr))->sin_addr;
         strcpy(tem_ipdz,inet_ntoa(my_ip->sin_addr));
