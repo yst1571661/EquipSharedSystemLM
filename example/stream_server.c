@@ -594,6 +594,7 @@ int main(int argc, char * argv[])
         else
             device_mode = 0;
         //user_count = ((read_at24c02b(239) << 8) & 0xFF00) + read_at24c02b(240);
+        reboot_count = read_at24c02b(243);
         is_redict = 0;
         BASIC_LEVEL_ = BASIC_VALUE;
     }
@@ -614,7 +615,8 @@ int main(int argc, char * argv[])
         write_at24c02b(221, card_tlimit&0xFF);
         write_at24c02b(239,1);		//default set open mode
         write_at24c02b(241,0);
-        write_at24c02b(242,0);              //log number
+        write_at24c02b(242,0);          //log number
+        write_at24c02b(243,0);          //reboot times per day
         is_redict = 0;			//test motion data when boot
         write_at24c02b(60, 0); //write_at24c02b(ADDR_BEGIN, 0);
     }

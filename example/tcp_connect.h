@@ -41,7 +41,7 @@ static int gIP_change = 1;
 
 #define NDEBUG  0
 #define STATIC_IP       0
-#define RELEASE_MODE    1
+#define RELEASE_MODE    0
 #define DEBUG_CONN	1
 #define DEBUG_RECV	1
 #define DEBUG_DATA      1
@@ -113,6 +113,7 @@ unsigned long user_version;    //用户数据库版本号
 unsigned long software_version;	//程序版本号
 int user_count;
 int card_errcount;              //刷卡器出错计数
+int reboot_count;               //每天重启次数
 int led_state;
 int device_mode;				//标志设备是开放还是半开放模式 0x01 开放模式	0x00 半开放模式
 /*视频采集参数*/
@@ -175,6 +176,8 @@ void FreeMemForEx();
 void* WatchDog(void *arg);
 
 void* DynamicGetIp(void *arg);
+
+void ProtectedBoot();
 
 void* WavePacketSend(void *arg);
 
