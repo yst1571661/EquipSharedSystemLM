@@ -1702,7 +1702,7 @@ static void* SyncParketExec(void *arg)
                 oriAddr = conn->packBuffIn;
                 buffer = oriAddr;
 
-#if DEBUG_DATA
+#if NDEBUG
                 DebugPrintf("\n----SyncParketExec--parse Packet Total Length = %d", leftLen);
 #endif
 
@@ -1745,7 +1745,7 @@ static void* SyncParketExec(void *arg)
                             break;
                         }
 
-#if DEBUG_DATA
+#if NDEBUG
                         DebugPrintf("\n----SyncParketExec--parse Packet Length = %d", packLen);
                         DebugPrintf("\n--buffer[7] = %d   buffer[8] = %d--", buffer[7], buffer[8]);
                         fflush(stdout);
@@ -2000,7 +2000,7 @@ static int SockBuffRecv(stuConnSock *sttParm)
             curRead = 0;
         }
 
-#if DEBUG_DATA
+#if NDEBUG
             DebugPrintf("\n----SockBuffRecv--receive now all bytes = %d", curRead);
             fflush(stdout);
 #endif
@@ -3620,8 +3620,13 @@ void* WatchDog(void *arg)
             {
                 IpFlag = 0;
                 LoopTime = 0;
+#if RELEASE_MODE
+                DebugPrintf("\n-----LoopTime = %d\n",LoopTime);
+#else
                 DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
+#endif
+
             }
             else
             {

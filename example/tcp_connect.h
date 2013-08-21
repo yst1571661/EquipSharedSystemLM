@@ -41,7 +41,7 @@ static int gIP_change = 1;
 
 #define NDEBUG  0
 #define STATIC_IP       0
-#define RELEASE_MODE    0
+#define RELEASE_MODE    1
 #define DEBUG_CONN	1
 #define DEBUG_RECV	1
 #define DEBUG_DATA      1
@@ -53,6 +53,7 @@ static int gIP_change = 1;
 #define BACKUPINTERVEL  1
 #define SCREEN_INFO     1                               //1:output screen	important information	0:don't output information	on screen
 #else
+#define BACKUPINTERVEL  1
 #define DebugPrintf	printf
 #define SCREEN_INFO     0
 #endif
