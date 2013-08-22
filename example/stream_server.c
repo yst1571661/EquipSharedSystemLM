@@ -756,28 +756,28 @@ int main(int argc, char * argv[])
         exit(0);
     }
 
-    if (WorkThreadCreate(WatchDog, 0))        	//start the synchronization pictures thread
+    if (WorkThreadCreate(WatchDog, 0 ,THREAD_STACK))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread WatchDog create error");
         fflush(stdout);
         exit(0);
     }
 
-    if (WorkThreadCreate(DynamicGetIp, 0))        	//start the synchronization pictures thread
+    if (WorkThreadCreate(DynamicGetIp, 0 , THREAD_STACK*2))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread DynamicGetIp create error");
         fflush(stdout);
         exit(0);
     }
 
-    if (WorkThreadCreate(WavePacketSend, 0))        	//start the synchronization pictures thread
+    if (WorkThreadCreate(WavePacketSend, 0 , THREAD_STACK))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread WavePacketSend create error");
         fflush(stdout);
         exit(0);
     }
 
-    if (WorkThreadCreate(CardPacketSend, 0))        	//start the query parameter thread
+    if (WorkThreadCreate(CardPacketSend, 0 ,THREAD_STACK))        	//start the query parameter thread
     {
         perror("\n------------Thread WavePacketSend create error");
         fflush(stdout);
