@@ -2137,7 +2137,6 @@ int _ConnLoop()
             gIP_change = 0;
             trans_user = 0;
         }
-        //LedTwinkle();
         for (Loopi=0; Loopi<MAX_LINK_SOCK; Loopi++)
         {
             if ((sttConnSock[Loopi].noProbes>gmax_nalarms) || (sttConnSock[Loopi].loginLegal==-1))    //带外数据接收超时 或登录非法
@@ -3698,33 +3697,32 @@ void* DynamicGetIp(void *arg)
         {
             PrintScreen("\n----- ping server and gate failed! -----\n");
             DebugPrintf("\n----- ping server and gate failed! -----\n");
-            if((PidGetIp = fork())<0)
+            if((PidGetIp = vfork())<0)
             {
                 perror("\n----fork udhcpc error!----\n");
                 DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
                 ForkerrorTime++;
                 /*2次重启网络失败就重启终端*/
-                if(ForkerrorTime>=7)
+                if(ForkerrorTime>=200)
                 {
                     DebugPrintf("\n-----Too many fork error!-----\n");
-                    ProtectedBoot();
+                    if(led_state==1||(sys_tm->tm_hour<8)||(sys_tm->tm_hour>17))
+                        ProtectedBoot();
+                    else
+                        ForkerrorTime=150;
                 }
                 /*2次fork失败就重启网络*/
-                else if(ForkerrorTime>=3)
+                else
                 {
-                    /*禁用设备*/
-                    if(system("ifconfig eth0 down")!=0)
-                        DebugPrintf("\nsystem(1) error\n%s\n",strerror(errno));
-
-                    /*激活设备*/
-                    if(system("ifconfig eth0 up")!=0)
-                        DebugPrintf("\nsystem(2) error\n%s\n",strerror(errno));
-
-                    if((PidGetIp = fork())<0)
+                    if(ForkerrorTime%100==0)
                     {
-                        ForkerrorTime++;
-                        perror("\n----fork udhcpc error!----\n");
-                        DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
+                        /*禁用设备*/
+                        if(system("ifconfig eth0 down")!=0)
+                            DebugPrintf("\nsystem(1) error\n%s\n",strerror(errno));
+
+                        /*激活设备*/
+                        if(system("ifconfig eth0 up")!=0)
+                            DebugPrintf("\nsystem(2) error\n%s\n",strerror(errno));
                     }
                 }
             }
@@ -4213,7 +4211,7 @@ void* CardPacketSend(void *arg)         //查询参数
                         /*检测未知卡*/
                         check_unknown(user_temp);
                         break;
-                                        }
+                    }
                         key.dptr = cardrecordwr;
                         key.dsize = strlen(cardrecordwr) + 1;
 
@@ -4223,7 +4221,7 @@ void* CardPacketSend(void *arg)         //查询参数
                         if (db_store(gdbm_card, key, data) < 0) {
                             DebugPrintf("\n--------store cardrecordwe err ------");
                            // break;
-                    }
+                        }
                     else
                     {
 #if NDEBUG
