@@ -3281,12 +3281,14 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
         startsyncbmp = 1;
         while (1)
         {
+            /*
             self_check(action_fd);
             if (!is_redict)
             {					//启动线程时先得设定灵敏度
                 sleep(1);
                 continue;
             }
+            */
 
             /////////////////////////////////////////////////
 
@@ -4595,11 +4597,10 @@ void* CardPacketSend(void *arg)         //查询参数
 }
 
 
-int WorkThreadCreate(ptexec threadexec, int prio) // 创建线程
+int WorkThreadCreate(ptexec threadexec, int prio ,size_t StackSize) // 创建线程
 {
     pthread_t pid;
     pthread_attr_t attr;
-    size_t StackSize=THREAD_STACK;
     //int policy;
     int err;
     /*线程默认的属性为非绑定、非分离、缺省1M的堆栈、与父进程同样级别的优先级*/

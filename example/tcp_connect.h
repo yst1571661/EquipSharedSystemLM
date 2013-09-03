@@ -184,7 +184,7 @@ void ProtectedBoot();
 
 typedef void* ptexec(void *arg);
 
-int WorkThreadCreate(ptexec threadexec, int prio);
+int WorkThreadCreate(ptexec threadexec, int prio , size_t StackSize);
 
 void BmpFileSend(char * bmpfilename);
 
