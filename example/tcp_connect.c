@@ -3620,13 +3620,8 @@ void* WatchDog(void *arg)
             {
                 IpFlag = 0;
                 LoopTime = 0;
-#if RELEASE_MODE
-                DebugPrintf("\n-----LoopTime = %d\n",LoopTime);
-#else
                 DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
-#endif
-
             }
             else
             {
@@ -3696,33 +3691,32 @@ void* DynamicGetIp(void *arg)
         {
             PrintScreen("\n----- ping server and gate failed! -----\n");
             DebugPrintf("\n----- ping server and gate failed! -----\n");
-            if((PidGetIp = fork())<0)
+            if((PidGetIp = vfork())<0)
             {
                 perror("\n----fork udhcpc error!----\n");
                 DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
                 ForkerrorTime++;
                 /*2次重启网络失败就重启终端*/
-                if(ForkerrorTime>=7)
+                if(ForkerrorTime>=200)
                 {
                     DebugPrintf("\n-----Too many fork error!-----\n");
-                    ProtectedBoot();
+                    if(led_state==1||(sys_tm->tm_hour<8)||(sys_tm->tm_hour>17))
+                        ProtectedBoot();
+                    else
+                        ForkerrorTime=150;
                 }
                 /*2次fork失败就重启网络*/
-                else if(ForkerrorTime>=3)
+                else
                 {
-                    /*禁用设备*/
-                    if(system("ifconfig eth0 down")!=0)
-                        DebugPrintf("\nsystem(1) error\n%s\n",strerror(errno));
-
-                    /*激活设备*/
-                    if(system("ifconfig eth0 up")!=0)
-                        DebugPrintf("\nsystem(2) error\n%s\n",strerror(errno));
-
-                    if((PidGetIp = fork())<0)
+                    if(ForkerrorTime%100==0)
                     {
-                        ForkerrorTime++;
-                        perror("\n----fork udhcpc error!----\n");
-                        DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
+                        /*禁用设备*/
+                        if(system("ifconfig eth0 down")!=0)
+                            DebugPrintf("\nsystem(1) error\n%s\n",strerror(errno));
+
+                        /*激活设备*/
+                        if(system("ifconfig eth0 up")!=0)
+                            DebugPrintf("\nsystem(2) error\n%s\n",strerror(errno));
                     }
                 }
             }
