@@ -1805,7 +1805,7 @@ static void* SyncParketExec(void *arg)
                             pthread_mutex_unlock(&conn->lockBuffOut);
                             if(reboot_flag==1)
                             {
-                                system("reboot");
+                                ProtectedBoot();
                             }
                         }
                         else
@@ -1821,7 +1821,7 @@ static void* SyncParketExec(void *arg)
                         if(cmdAck[0] == 0x00 && cmdAck[1] == 0x02 && cmdAck[2] == 0x02)
                         {
                             sleep(1);
-                            system("reboot");
+                            ProtectedBoot();
                         }
                         else if(cmdAck[0] == 0x00 && cmdAck[1] == 0x02 && cmdAck[2] == 0x0b)
                         {
@@ -3958,7 +3958,7 @@ void* CardPacketSend(void *arg)         //查询参数
                     PrintScreen("\n----Ready to Reboot----\n");
                     system("cp /tmp/local.log /mnt/local.log");
                     sleep(3);
-                    system("reboot");
+                    ProtectedBoot();
 #endif
                 }
                 close_card_uart();
@@ -4588,7 +4588,7 @@ void* CardPacketSend(void *arg)         //查询参数
     }
     DebugPrintf("\n-----CardPacketSend Thread exit-----");
     sleep(1);
-    system("reboot");
+    ProtectedBoot();
 }
 
 

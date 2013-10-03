@@ -403,7 +403,7 @@ static void * save_file(void * arg)
     spct_decode_close(&videodecoder);
     DebugPrintf("\n-----save_file Thread exit-----\n");
     sleep(1);
-    system("reboot");
+    ProtectedBoot();
     ///////////////////////////////////////////////////////////////////////
 }
 
