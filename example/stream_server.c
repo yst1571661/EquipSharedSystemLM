@@ -539,19 +539,16 @@ int main(int argc, char * argv[])
     DebugPrintf("\n");
 
 #if RELEASE_MODE
-    system("sleep 1");
+#if STATIC_IP
+    net_configure();
     system("ifconfig eth0 down ");
     system(macaddr_cmd);
     system("ifconfig eth0 up");
-    system("sleep 5");
-#if STATIC_IP
-    net_configure();
 #else
     /*动态获取IP、子网掩码、网关、DNS*/
     system("udhcpc -t 2 -T 3 -q &");
 #endif
 #endif
-
     ////////////////////////////////////////////////////////////////////
     memset(&context , 0 , sizeof(context));
 
@@ -767,12 +764,21 @@ int main(int argc, char * argv[])
         exit(0);
     }
 
+#if STATIC_IP
+    if (WorkThreadCreate(StaticGetIp, 0 ,THREAD_STACK*2))        	//start the synchronization pictures thread
+    {
+        perror("\n------------Thread GetIp create error");
+        fflush(stdout);
+        exit(0);
+    }
+#else
     if (WorkThreadCreate(DynamicGetIp, 0 ,THREAD_STACK*2))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread GetIp create error");
         fflush(stdout);
         exit(0);
     }
+#endif
 
     if (WorkThreadCreate(WavePacketSend, 0 , THREAD_STACK))        	//start the synchronization pictures thread
     {

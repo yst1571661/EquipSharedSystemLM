@@ -180,6 +180,8 @@ void* CardPacketSend(void *arg);
 
 void* DynamicGetIp(void *arg);
 
+void* StaticGetIp(void *arg);
+
 void ProtectedBoot();
 
 typedef void* ptexec(void *arg);

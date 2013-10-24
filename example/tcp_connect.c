@@ -61,9 +61,9 @@ stuConnSock sttConnSock[MAX_LINK_SOCK];           //最大允许客户端并发连接数
 struct sockaddr_in gserver_addr;
 struct sockaddr_in gclient_addr;
 
-char ipdz[16]="192.168.1.7";//"172.20.57.30";
+char ipdz[16]="223.3.60.30";//"172.20.57.30";
 char zwym[16]="255.255.254.0";
-char mrwg[16]="172.20.56.1";
+char mrwg[16]="223.3.0.1";
 
 
 /*表格对应 0x00-0xff 的CRC校验结果*/
@@ -3747,6 +3747,48 @@ void* DynamicGetIp(void *arg)
     while(1);
 }
 
+void* StaticGetIp(void *arg)
+{
+    int ForkerrorTime = 0;
+    int IpRet;
+    int Loopi=0;
+    int LoopTime=0;
+    PidGetIp = 0;
+    PingServerRet=-1;
+    PingGateRet=-1;
+    /*动态获取IP*/
+    do{
+        /*检测是否与服务器连接*/
+        PingServerRet = system("ping 58.192.119.146");
+        PingGateRet = system("ping 223.3.32.1");
+#if RELEASE_MODE
+#else
+        PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
+        PrintScreen("\n----- PingGateRet = %d -----\n",PingGateRet);
+#endif
+        /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+        if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
+           (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
+        {
+
+        }
+        /*网络不通则动态获取IP*/
+        else
+        {
+            PrintScreen("\n----- ping server and gate failed! -----\n");
+            DebugPrintf("\n----- ping server and gate failed! -----\n");
+            ////配置静态IP////
+            net_configure();
+
+#if RELEASE_MODE
+#else
+                PrintScreen("\n----- IpRet = %d -----\n",IpRet);
+#endif
+        }
+        sleep(20);
+    }
+    while(1);
+}
 
 void ProtectedBoot()
 {
