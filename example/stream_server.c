@@ -553,7 +553,7 @@ int main(int argc, char * argv[])
     memset(&context , 0 , sizeof(context));
 
     /*parser argv*/
-    pasarg(argc, argv, &context);
+    //pasarg(argc, argv, &context);
     /*catch_mode 226    catch_sen  227  catch_freq 228 229   238 check eeprom 236 237 数卡时间间隔 239 240 用户数目*/
     /*init the limit of card interval*/
     /*default open mode*/
@@ -634,22 +634,22 @@ int main(int argc, char * argv[])
     context.pro.sample_rate = 8000; // audio sample rate
     context.pro.bit_rate = 200; 	// bitrate
 
-    /*device init*/
-    if(ip_cam_construct(&context.ipcam, "/dev/video1"))
+    // device init
+    /*if(ip_cam_construct(&context.ipcam, "/dev/video1"))
     {
             fprintf(stderr, "Open device fail\n");
             return -1;
     }
-
-    //init streaming server
-    if(streaming_server_construct(&context.server, 554)) // use default RTSP port
+    */
+    // init streaming server
+    /*if(streaming_server_construct(&context.server, 554)) // use default RTSP port
     {
-            fprintf(stderr, "Create server fail\n");
+            fprintf(stderr, "Create srever fail\n");
             return -1;
     }
-
-    //create stream session
-    context.session = streaming_new_session(&context.server,
+    */
+    // create stream session
+    /*context.session = streaming_new_session(&context.server,
                                     0,	//channel 0
                                     6000, // rtp port number
                                     0,	  // is not multicast
@@ -669,14 +669,14 @@ int main(int argc, char * argv[])
     streaming_get_session_url(context.session, url, sizeof(url));
     DebugPrintf("spct streaming session URL: %s\n", url);
 
-    //register data handle function to ip cam device
+    // register data handle function to ip cam device
     context.ipcam.datahandler = &context;
     context.ipcam.fun = send_data;
     streaming_server_start(&context.server);
 
     ///////////////////////////////////////////////////////////////////////////
     cam_start_work(&context.ipcam);
-
+    */
     init_ds3231(); // init clock chip
     struct rtc_time curtime;
     get_time(&curtime);
@@ -707,7 +707,7 @@ int main(int argc, char * argv[])
     }
 
     /////////////////////////////////////////////////////////////////////////
-    if(context.bsavefile) // save file
+    /*if(context.bsavefile) // save file
     {
         // data queue construct
         res = dq_construct(&context.dq,
@@ -719,7 +719,7 @@ int main(int argc, char * argv[])
             DebugPrintf("construct data queue fail\n");
             return -1;
         }
-
+*/
         /*// file opt construct
         res = fileopt_asf_construct(&context.fileopt);
         if(res != 0)
@@ -731,7 +731,7 @@ int main(int argc, char * argv[])
         context.fileoptready = fileopt_create(&context.fileopt, context.outfilename, &context.pro);
         */
         // create save file  thread
-        pthread_attr_init(&attr);
+/*	pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
         if((res = pthread_create(&threadId1, &attr, save_file, &context)) != 0)
         {
@@ -739,7 +739,7 @@ int main(int argc, char * argv[])
             return -1;
         }
     }
-    else
+    else */
     {
         Err_Check.issavvideo = 1;
         Err_Check.photo = 0;
@@ -750,12 +750,12 @@ int main(int argc, char * argv[])
 
     /////////////////////////////////////////////////////////////////////////////
     //net_configure();                      					//  read_optfile();
-
-    if (pthread_mutex_init(&sttDspRoute.dsp_lock, NULL) != 0)
+    /*if (pthread_mutex_init(&sttDspRoute.dsp_lock, NULL) != 0)
     {
         perror("\nmutex sttDspRoute.dsp_lock failed!");
         exit(0);
     }
+    */
 
     if (WorkThreadCreate(WatchDog, 0 ,THREAD_STACK))        	//start the synchronization pictures thread
     {

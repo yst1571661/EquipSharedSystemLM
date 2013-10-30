@@ -3778,14 +3778,14 @@ void* StaticGetIp(void *arg)
             PrintScreen("\n----- ping server and gate failed! -----\n");
             DebugPrintf("\n----- ping server and gate failed! -----\n");
             ////≈‰÷√æ≤Ã¨IP////
-            net_configure();
+            //net_configure();
 
 #if RELEASE_MODE
 #else
                 PrintScreen("\n----- IpRet = %d -----\n",IpRet);
 #endif
         }
-        sleep(20);
+        sleep(200);
     }
     while(1);
 }
