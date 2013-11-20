@@ -3651,6 +3651,10 @@ void* WatchDog(void *arg)
                     DebugPrintf("\n-----Net Error!-----\n");
                     ProtectedBoot();
                 }
+                else if((sys_tm->tm_hour==2)&&(sys_tm->tm_min)==20)
+                {
+                    ProtectedBoot();
+                }
             }
             sleep(5);
         }
