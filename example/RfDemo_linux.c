@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include <string.h>
 #include "librf.h"
+#include "card_test.h"
+#ifndef NUC951
 
 static int icdev = -1;
 extern unsigned char BCD_decode_tab[];
@@ -132,3 +134,4 @@ void card_beep(int msec)
             printf("\ndc_halt 0x%02x",st);
         }
 }
+#endif

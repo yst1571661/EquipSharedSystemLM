@@ -6,6 +6,8 @@
 #include "rtc.h"
 #include "bcd.h"
 #include "log.h"
+#include "nuc951_rtc.h"
+#include "device.h"
 
 #if  			DEBUG_LOG
 #define DebugPrintf(args...)	log_error(LOG_DEBUG,##args)
@@ -13,7 +15,7 @@
 #define DebugPrintf	printf
 #endif
 
-
+#ifndef NUC951
 struct rtc_time rtc_tm;
 
 int init_ds3231()
@@ -268,3 +270,4 @@ int write_at24c02b(unsigned int addr, int data)
         }
         return 0;
 }
+#endif

@@ -71,10 +71,10 @@ int ReadVol()
  */
 int SetLed(int val)
 {
-	const int arg = 6;
+        const int arg = 8;
 	if(-1 == gpio_fd)
 	{
-		printf("GPIO_EX: GPIOE is not init \n");
+                printf("GPIO_EX: GPIOD is not init \n");
 		return -1;
 	}
 	if(1 == val)

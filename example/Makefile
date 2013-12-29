@@ -90,7 +90,7 @@ clean:
 #	$(CC) $(CFLAGS) $(INCLUDE) -o $@  sdl_display.c  $(LDFLAGS)
 
 $(DEMO_SERVER): ip_cam_dev.c stream_server.c
-	$(CC) $(CFLAGS) $(INCLUDE) -o $@  log.c  locallink.c db.c  ip_cam_dev.c RfDemo_linux.c xml.c MYI2C_Ex.c GPIO_Ex.c device.c tcp_connect.c YUV2JPEG.c stream_server.c $(LDFLAGS)
+	$(CC) $(CFLAGS) $(INCLUDE) -o $@  log.c  locallink.c db.c  ip_cam_dev.c RfDemo_linux.c xml.c MYI2C_Ex.c GPIO_Ex.c device.c tcp_connect.c YUV2JPEG.c stream_server.c card_test.c serial.c rtc.c flash_device.c $(LDFLAGS)
 	arm-linux-strip stream_server
 
 

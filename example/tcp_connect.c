@@ -202,7 +202,8 @@ static int SockServerInit()
         return -1;
     }
 
-    bzero(&gserver_addr, sizeof(gserver_addr));
+    //bzero(&gserver_addr, sizeof(gserver_addr));
+    memset(&gserver_addr,0, sizeof(gserver_addr));
     gserver_addr.sin_family = AF_INET;
     gserver_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     gserver_addr.sin_port = htons(PORT);

@@ -505,6 +505,7 @@ int main(int argc, char * argv[])
     pthread_attr_t attr;
     pthread_t threadId1;
 
+
     /*≥ı ºªØ24c02b*/
     if(init_at24c02b() == -1)
     {
