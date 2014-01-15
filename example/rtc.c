@@ -75,14 +75,14 @@ void tick_func()
         printf("*\n\nTick interrupt come on,the func running!*\n");
 
 }
-void ctrl_c_signal (int sig)
+/*void ctrl_c_signal (int sig)
 {
         switch (sig) {
                 printf("/n/n **You have input 'ctrl+c',so must be input 'X' exit DEMO!\n\n");
         case SIGTERM:
 
         case SIGINT:
-                /* Disable alarm interrupts */
+                // Disable alarm interrupts
                 ioctl(rtc_fd, RTC_AIE_OFF, 0);
                 ioctl(rtc_fd, RTC_TICK_OFF, 0);
                 close(rtc_fd);
@@ -93,7 +93,7 @@ void ctrl_c_signal (int sig)
 
                 printf ("What?\n");
         }
-}
+}*/
 
 /*
 *setup_time():set up the sec,func
@@ -301,6 +301,9 @@ void get_time(struct rtc_time * tm)
 	snprintf(rtc_string, 40, "date %02d%02d%02d%02d%d.%02d",tm->tm_mon,tm->tm_mday,tm->tm_hour,tm->tm_min,tm->tm_year,tm->tm_sec);
 	system(rtc_string);
 }
+
+
+
 
 int  set_time(unsigned int year0,unsigned int year1,unsigned int month,unsigned int day,unsigned int hour,unsigned int min,unsigned int sec)
 {

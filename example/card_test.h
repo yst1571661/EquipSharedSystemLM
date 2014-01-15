@@ -8,7 +8,7 @@
 #ifndef CARD_TEST_H_
 #define CARD_TEST_H_
 
-#define xNUC951
+#define NUC951
 
 //int init_card_uart(void);
 //unsigned long CardRead();

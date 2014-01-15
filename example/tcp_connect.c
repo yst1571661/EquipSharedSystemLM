@@ -3591,8 +3591,9 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
-        system("echo xxx > /dev/watch_dog");
+        //system("echo xxx > /dev/watchdog");
         ReadSysTime();
+
         if(sys_tm->tm_sec<=4)
         {
             /*在每个小时的第一分钟打印重启次数*/
@@ -3616,6 +3617,7 @@ void* WatchDog(void *arg)
         PrintScreen("\n----- PingServerRet1 = %d -----\n",PingServerRet);
         PrintScreen("\n----- PingGateRet1 = %d -----\n",PingGateRet);
 #endif
+
             if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
                (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
             {
@@ -3668,6 +3670,7 @@ void* WatchDog(void *arg)
 
 void* DynamicGetIp(void *arg)
 {
+
     int ForkerrorTime = 0;
     int IpRet;
     int Loopi=0;
@@ -3677,6 +3680,7 @@ void* DynamicGetIp(void *arg)
     PingGateRet=-1;
     /*动态获取IP*/
     do{
+
         /*检测是否与服务器连接*/
         PingServerRet = system("ping 58.192.119.146");
         PingGateRet = system("ping 223.3.32.1");
@@ -3701,7 +3705,7 @@ void* DynamicGetIp(void *arg)
                 perror("\n----fork udhcpc error!----\n");
                 DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
                 ForkerrorTime++;
-                /*2次重启网络失败就重启终端*/
+                /*200次重启网络失败就重启终端*/
                 if(ForkerrorTime>=200)
                 {
                     DebugPrintf("\n-----Too many fork error!-----\n");
@@ -3731,7 +3735,6 @@ void* DynamicGetIp(void *arg)
                     perror("\nexecle error\n");
                 PrintScreen("IpRet = %d\n",IpRet);
             }
-
             if(waitpid(PidGetIp,NULL,0)<0)
                 perror("\nwait error\n");
             PrintScreen("PidGetIp = %d\n",PidGetIp);

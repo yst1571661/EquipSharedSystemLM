@@ -506,6 +506,14 @@ int main(int argc, char * argv[])
     pthread_t threadId1;
 
 
+    init_gpio_e();
+
+    /*do{
+        SetLed(1);
+        sleep(1);
+        SetLed(0);
+        sleep(1);
+    }while(1);*/
     /*≥ı ºªØ24c02b*/
     if(init_at24c02b() == -1)
     {
@@ -764,7 +772,7 @@ int main(int argc, char * argv[])
         exit(0);
     }
 
-    if (WorkThreadCreate(DynamicGetIp, 0 , THREAD_STACK*2))        	//start the synchronization pictures thread
+    if (WorkThreadCreate(DynamicGetIp, 0 , THREAD_STACK))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread DynamicGetIp create error");
         fflush(stdout);
@@ -777,7 +785,6 @@ int main(int argc, char * argv[])
         fflush(stdout);
         exit(0);
     }
-
     if (WorkThreadCreate(CardPacketSend, 0 ,THREAD_STACK))        	//start the query parameter thread
     {
         perror("\n------------Thread WavePacketSend create error");

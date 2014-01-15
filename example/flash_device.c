@@ -123,7 +123,7 @@ int write_at24c02b(unsigned int addr, int data)
 		} else {
 			printf("\n write ok \n");
 		}
-	}
+        }
 	printf("\n test end\n");
 	return 0;
 }*/
