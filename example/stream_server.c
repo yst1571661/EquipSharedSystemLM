@@ -505,20 +505,6 @@ int main(int argc, char * argv[])
     pthread_attr_t attr;
     pthread_t threadId1;
 
-
-    init_gpio_e();
-
-    /*do{
-        SetLed(1);
-        sleep(1);
-        SetLed(0);
-        sleep(1);
-    }while(1);*/
-    /*初始化24c02b*/
-    if(init_at24c02b() == -1)
-    {
-        return -1;
-    }
     system("mkdir /mnt/log");
     system("mkdir /mnt/work");
     system("mkdir /mnt/safe");
@@ -526,59 +512,23 @@ int main(int argc, char * argv[])
     sprintf(SysCmd,"cp %s %s",LOGFILEBACKDIR,LOGFILETMPDIR);
     system(SysCmd);
     init_log(LOGFILETMPDIR,LOG_DEBUG);
-    /*记录打开备份时间*/
-    ReadSysTime();
-    backup_flag = 0;
-    FILE *fd_mac;
-    char macaddr_cmd[50];
-    char snrnum_temp[20];
-    /*打开vdc号的文件*/
-    fd_mac = fopen("/tmp/macaddr","r+");
-    if(fd_mac == NULL)
+    //初始化硬件
+    init_ds3231(); // init clock chip
+    struct rtc_time curtime;
+    get_time(&curtime);
+    DebugPrintf("\n-----current time %02d%02d%02d%02d%d.%02d-----", curtime.tm_mon,curtime.tm_mday,curtime.tm_hour,curtime.tm_min,curtime.tm_year,curtime.tm_sec);
+    init_card_uart();
+    init_gpio_e();
+    /*初始化24c02b*/
+    printf("init 24c02b\n");
+    if(init_at24c02b() == -1)
     {
-        DebugPrintf("\n-----error: open /tmp/macaddr failed-----");
+        return -1;
     }
-    else
-    {
-        /*vdc号12位*/
-        fscanf(fd_mac,"%s",snrnum_temp);
-        fclose(fd_mac);
-        strcpy(snrnum, snrnum_temp);
-        snrnum[12] = '\0';
-    }
+    printf("init 24c02b sucessufully!\n");
 
-    DebugPrintf("\n-----snrnum = %s-----", snrnum);
-    sprintf(macaddr_cmd,"ifconfig eth0 hw ether %.2s:%.2s:%.2s:%.2s:%.2s:%.2s",snrnum_temp,snrnum_temp+2,snrnum_temp+4,snrnum_temp+6,snrnum_temp+8,snrnum_temp+10);
-    DebugPrintf("\n-----%s-----",macaddr_cmd);
-    DebugPrintf("\n");
-
-#if RELEASE_MODE
-    system("sleep 1");
-    system("ifconfig eth0 down ");
-    system(macaddr_cmd);
-    system("ifconfig eth0 up");
-    system("sleep 5");
-#if STATIC_IP
-    net_configure();
-#else
-    /*动态获取IP、子网掩码、网关、DNS*/
-    system("udhcpc -q &");
-#endif
-#endif
-    ////////////////////////////////////////////////////////////////////
-    memset(&context , 0 , sizeof(context));
-
-    /*parser argv*/
-    pasarg(argc, argv, &context);
-    //catch_mode 226    catch_sen  227  catch_freq 228 229   238 check eeprom 236 237 数卡时间间隔 239 240 用户数目
-    card_tlimit = 30;							//init the limit of card interval
-    device_mode = 0x01;							//default open mode
-    beginsendbmp = 1;
-    beginupload = 0;
-    card_errcount = 0;
-    reboot_flag=0;
-
-    if (read_at24c02b(225) == 11)
+    //初始化参数
+    if ((reboot_flag = read_at24c02b(225)) == 11)
     {
         catch_mode = read_at24c02b(226);
         catch_sen = read_at24c02b(227);
@@ -609,6 +559,7 @@ int main(int argc, char * argv[])
     }
     else
     {
+        DebugPrintf("IT'S A NEW EEPROM!\n");
         catch_mode = 0x00;
         catch_sen = 2;
         catch_freq = 60;
@@ -628,7 +579,75 @@ int main(int argc, char * argv[])
         write_at24c02b(243,0);          //reboot times per day
         is_redict = 0;			//test motion data when boot
         write_at24c02b(60, 0); //write_at24c02b(ADDR_BEGIN, 0);
+#ifdef NUC951
+        set_time(0,2000,1,1,0,0,0);
+#endif
     }
+    printf("read status successfully\n");
+
+    //初始化控制状态
+    if(read_at24c02b(45) == 11)
+    {
+        if(read_at24c02b(46) == 1)
+        {
+            TurnLedOn();
+            led_state = 1;
+        }
+        else
+        {
+            TurnLedOff();
+            led_state = 0;
+        }
+    }
+    else
+    {
+        TurnLedOff();
+        write_at24c02b(45, 11);
+        write_at24c02b(46, 0);
+    }
+    printf("read control status successfully\n");
+    /*记录打开备份时间*/
+    ReadSysTime();
+    backup_flag = 0;
+    FILE *fd_mac;
+    char macaddr_cmd[50];
+    char snrnum_temp[20];
+    /*打开vdc号的文件*/
+    fd_mac = fopen("/tmp/macaddr","r+");
+    if(fd_mac == NULL)
+    {
+        DebugPrintf("\n-----error: open /tmp/macaddr failed-----");
+    }
+    else
+    {
+        /*vdc号12位*/
+        fscanf(fd_mac,"%s",snrnum_temp);
+        fclose(fd_mac);
+        strcpy(snrnum, snrnum_temp);
+        snrnum[12] = '\0';
+    }
+
+    DebugPrintf("\n-----snrnum = %s-----", snrnum);
+    sprintf(macaddr_cmd,"ifconfig eth0 hw ether %.2s:%.2s:%.2s:%.2s:%.2s:%.2s",snrnum_temp,snrnum_temp+2,snrnum_temp+4,snrnum_temp+6,snrnum_temp+8,snrnum_temp+10);
+    printf("ifconfig eth0 hw ether %.2s:%.2s:%.2s:%.2s:%.2s:%.2s",snrnum_temp,snrnum_temp+2,snrnum_temp+4,snrnum_temp+6,snrnum_temp+8,snrnum_temp+10);
+    DebugPrintf("\n-----%s-----",macaddr_cmd);
+    DebugPrintf("\n");
+    printf("\nmodified the HW successfully\n");
+
+
+    ////////////////////////////////////////////////////////////////////
+    memset(&context , 0 , sizeof(context));
+
+    /*parser argv*/
+    pasarg(argc, argv, &context);
+    //catch_mode 226    catch_sen  227  catch_freq 228 229   238 check eeprom 236 237 数卡时间间隔 239 240 用户数目
+    card_tlimit = 30;							//init the limit of card interval
+    device_mode = 0x01;							//default open mode
+    beginsendbmp = 1;
+    beginupload = 0;
+    card_errcount = 0;
+    reboot_flag=0;
+
 
     card_tlimit = 30;
     // perpare file property
@@ -642,7 +661,6 @@ int main(int argc, char * argv[])
     context.pro.sample_rate = 8000; // audio sample rate
     context.pro.bit_rate = 200; 	// bitrate
 
-    // device init
     /*if(ip_cam_construct(&context.ipcam, "/dev/video1"))
     {
             fprintf(stderr, "Open device fail\n");
@@ -685,34 +703,8 @@ int main(int argc, char * argv[])
     ///////////////////////////////////////////////////////////////////////////
     cam_start_work(&context.ipcam);
     */
-    init_ds3231(); // init clock chip
-    struct rtc_time curtime;
-    get_time(&curtime);
-    DebugPrintf("\n-----current time %02d%02d%02d%02d%d.%02d-----", curtime.tm_mon,curtime.tm_mday,curtime.tm_hour,curtime.tm_min,curtime.tm_year,curtime.tm_sec);
-    //init_ch450();
-    init_gpio_e();
-    init_card_uart();
 
-    ////////////////////////////////////////////////////////////////////////////
-    if(read_at24c02b(45) == 11)
-    {
-        if(read_at24c02b(46) == 1)
-        {
-            TurnLedOn();
-            led_state = 1;
-        }
-        else
-        {
-            TurnLedOff();
-            led_state = 0;
-        }
-    }
-    else
-    {
-        TurnLedOff();
-        write_at24c02b(45, 11);
-        write_at24c02b(46, 0);
-    }
+
 
     /////////////////////////////////////////////////////////////////////////
     /*if(context.bsavefile) // save file
@@ -752,7 +744,33 @@ int main(int argc, char * argv[])
         Err_Check.issavvideo = 1;
         Err_Check.photo = 0;
     }
-
+#if RELEASE_MODE
+    system("sleep 1");
+    printf("ifconfig eth0 down\n");
+    if(system("ifconfig eth0 down")!=0)
+    {
+        PrintScreen("system error(1)");
+    }
+    if(system(macaddr_cmd)!=0)
+    {
+        PrintScreen("system error(2)");
+    }
+    sleep(3);
+    printf("ifconfig eth0 up\n");
+    if(system("ifconfig eth0 up")!=0)
+    {
+        PrintScreen("system error(3)");
+    }
+    printf("Reset eth0 successfully\n");
+    system("sleep 2");
+#if STATIC_IP
+    net_configure();
+#else
+    /*动态获取IP、子网掩码、网关、DNS*/
+    system("udhcpc -q &");
+    printf("DHCP MODE\n");
+#endif
+#endif
     // start device to work
     //cam_start_work(&context.ipcam);
 

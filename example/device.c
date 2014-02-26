@@ -7,7 +7,7 @@
 #include "bcd.h"
 #include "log.h"
 #include "nuc951_rtc.h"
-#include "device.h"
+#include "nuc_config.h"
 
 #if  			DEBUG_LOG
 #define DebugPrintf(args...)	log_error(LOG_DEBUG,##args)

@@ -898,7 +898,7 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
             *length = 3;
             ansData=malloc(3);
             memcpy(TempDatabuf,dataBuffer+1,7);
-            DebugPrintf("\n-----set time %02d%02d%02d%02d%02d%02d.%02d-----", TempDatabuf[0],TempDatabuf[1],TempDatabuf[2],TempDatabuf[3],TempDatabuf[4],TempDatabuf[5],TempDatabuf[6]);
+            DebugPrintf("\n-----set time %02d%02d%02d%02d%02d%02d.%02d-----", TempDatabuf[0],TempDatabuf[1],TempDatabuf[2],TempDatabuf[3],TempDatabuf[4],TempDatabuf[5],TempDatabuf[6]);       
             re = Set_time(TempDatabuf);
             time_change = 1;
             if(re==0)
@@ -1606,6 +1606,9 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
 #endif
             /*set update bit,shows the program has not been updated*/
             write_at24c02b(236,0);
+#ifdef NUC951
+            system("cp /tmp/Tmp_Soft /var/server_gz");
+#else
             /*eraze nor flash:1.5M*/
             sprintf(cmdtmp,"/usb/./mtd_debug erase /dev/mtd0 0x0290000 0x150000");
             system(cmdtmp);
@@ -1616,6 +1619,7 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
 
             sprintf(cmdtmp,"/usb/mtd_debug write /dev/mtd0 0x0290000 %d /tmp/Tmp_Soft",byte_all);		//write the program to nor flash
             system(cmdtmp);
+#endif
             /*reset update bit,shows the program has been updated*/
             write_at24c02b(236,1);
             /*将版本号存至E2PROM*/
@@ -3572,7 +3576,7 @@ static  void sync_card()
 
 }
 
-#define FREQ_HIGH 400000
+#define FREQ_HIGH 300000
 #define FREQ_LOW  100000
 #define CARD_LIMIT	5
 #define ADDR_BEGIN      60
@@ -3941,6 +3945,7 @@ void* CardPacketSend(void *arg)         //查询参数
                     char *SysCmd=malloc(50);
                     sprintf(SysCmd,"cp %s %s",LOGFILETMPDIR,LOGFILEBACKDIR);
                     system(SysCmd);
+                    free(SysCmd);
                     backup_flag = 1;
                 }
             }
@@ -3956,6 +3961,7 @@ void* CardPacketSend(void *arg)         //查询参数
                 cur_cardsnr = CardRead();
             }
 
+#ifndef NUC951
             /*需要重启读卡器*/
             if ((cur_cardsnr == -2)&&!beginupload)
             {
@@ -3982,7 +3988,8 @@ void* CardPacketSend(void *arg)         //查询参数
             {
                 /*避免读卡器故障时电流检测周期过长*/
                 devicecount += 5;
-            }
+            }      
+#endif
             /*检测读卡器工作是否正常*/
             check_card(cur_cardsnr);
 
@@ -4011,7 +4018,7 @@ void* CardPacketSend(void *arg)         //查询参数
                             break;
                         }
                     }
-                                    /*后一个人和前一个刷卡时间大于5s*/
+                    /*后一个人和前一个刷卡时间大于5s*/
                     else {
                         if (cur_ctime - pre_ctime < CARD_LIMIT) {
                             PrintScreen("\n-----limit = %ds-----\n", CARD_LIMIT);
@@ -4371,10 +4378,16 @@ void* CardPacketSend(void *arg)         //查询参数
         /*电源开，在终端上上下机没有明确的判断，由电源状态来判断*/
         if(Led_on == 1)
         {
+#ifdef NUC951
+            card_beep(20);
+            card_beep(20);
+            card_beep(20);
+#else
             /*如果在上机的时候另一个人刷卡上机*/
             card_beep(50);
             card_beep(50);
             card_beep(50);
+#endif
             TurnLedOn();
             /*记录电源状态*/
             write_at24c02b(46, 1);
@@ -4390,13 +4403,17 @@ void* CardPacketSend(void *arg)         //查询参数
                 write_at24c02b(Loopi+ADDR_BEGIN, cur_card[Loopi]);
             }
 #if NDEBUG
-           // DebugPrintf("\n-------cur_card time begin from %ld----\n", time_last);
+            DebugPrintf("\n-------cur_card time begin from %ld----\n", time_last);
 #endif
         }
         /*如果电源没开，则不需要延时*/
         if(Led_off == 1)
         {
+#ifdef NUC951
+            card_beep(20);
+#else
             card_beep(50);
+#endif
             TurnLedOff();
             write_at24c02b(46, 0);
             Led_off = 0;
@@ -4648,10 +4665,7 @@ int WorkThreadCreate(ptexec threadexec, int prio ,size_t StackSize) // 创建线程
             perror("\n----pthread_attr_getstacksize err\n");
             return err;
     }
-    else
-    {
-        DebugPrintf("\n---modified static is %d bytes---\n",StackSize);
-    }
+
     err = pthread_attr_destroy(&attr);
     if (err != 0)
     {

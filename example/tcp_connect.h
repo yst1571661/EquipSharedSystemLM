@@ -6,6 +6,7 @@
 #include<sys/stat.h>
 #include<fcntl.h>
 
+#define NUC951
 #define PORT           7000                       //¼àÌý¶Ë¿Ú
 #define MAX_LINK_SOCK  1
 #define RECV_BUFF_SIZE 1024*1200

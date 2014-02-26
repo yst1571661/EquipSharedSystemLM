@@ -24,6 +24,7 @@
 #include <stdlib.h>
 
 #include "nuc951_rtc.h"
+#include "nuc_config.h"
 #ifdef NUC951
 
 #define RTC_FILE		"/dev/rtc0"
@@ -111,7 +112,7 @@ int setup_time(int fd, struct rtc_time * tms)
         int retval;
         struct rtc_time rtc_tm;
 
-        rtc_tm.tm_year   =   tms->tm_year;
+        rtc_tm.tm_year   =   tms->tm_year -1900;
         rtc_tm.tm_mon    =   tms->tm_mon - 1;
         rtc_tm.tm_mday   =   tms->tm_mday;
         rtc_tm.tm_hour   =   tms->tm_hour;
@@ -138,7 +139,6 @@ int setup_time(int fd, struct rtc_time * tms)
 
 int read_time(int fd, struct rtc_time * tms)
 {
-
         int retval;
         struct rtc_time rtc_tm;
 
@@ -151,7 +151,7 @@ int read_time(int fd, struct rtc_time * tms)
         }
         /*print current time*/
         printf("Read current RTC time is: %04d-%02d-%02d %02d:%02d:%02d\n\n",
-               rtc_tm.tm_year + 1800,
+               rtc_tm.tm_year + 1900,
                rtc_tm.tm_mon + 1,
                rtc_tm.tm_mday,
                rtc_tm.tm_hour,
@@ -274,7 +274,7 @@ int rtc_open()
 
 int init_ds3231()
 {
-	return rtc_open();
+        return rtc_open();
 }
 
 
@@ -293,13 +293,13 @@ void get_time(struct rtc_time * tm)
 	if ( NULL == tm )
 		return;
 
-
-	read_time(rtc_fd, tm);
-	tm->tm_year += 1800;
+        read_time(rtc_fd, tm);
+        tm->tm_year += 1900;
 
 	printf("\n-----read rtc %02d%02d%02d%02d%d.%02d-----\n",tm->tm_mon,tm->tm_mday,tm->tm_hour,tm->tm_min,tm->tm_year,tm->tm_sec);
 	snprintf(rtc_string, 40, "date %02d%02d%02d%02d%d.%02d",tm->tm_mon,tm->tm_mday,tm->tm_hour,tm->tm_min,tm->tm_year,tm->tm_sec);
-	system(rtc_string);
+        printf("tm->tm_mon=%d\n,tm->tm_mday=%d\n,tm->tm_hour=%d\n,tm->tm_min=%d\n,tm->tm_year=%d\n,tm->tm_sec=%d\n",tm->tm_mon,tm->tm_mday,tm->tm_hour,tm->tm_min,tm->tm_year,tm->tm_sec);
+        system(rtc_string);
 }
 
 
@@ -309,7 +309,8 @@ int  set_time(unsigned int year0,unsigned int year1,unsigned int month,unsigned 
 {
 	struct rtc_time rtc_tm;
 
-	rtc_tm.tm_year =year1 + 200;
+        rtc_tm.tm_year =year0*100;
+        rtc_tm.tm_year +=year1 ;
 	rtc_tm.tm_mon = month;
 	rtc_tm.tm_mday = day;
 	rtc_tm.tm_hour = hour;

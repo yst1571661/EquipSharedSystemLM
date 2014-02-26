@@ -4,8 +4,9 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-//#include "nuc900_gpio.h"
 #include <linux/ioctl.h>
+
+#include "nuc_config.h"
 
 typedef unsigned int     uint32; 
 #define GPIO_IOC_MAGIC      0xd0
@@ -28,13 +29,14 @@ int init_gpio_e()
 	gpio_fd = open("/dev/GPIO" , O_RDWR | O_NONBLOCK);
 	if(-1 == gpio_fd)
 	{
-		//Ch450Write(BCD_decode_tab[3],BCD_decode_tab[0],BCD_decode_tab[0]);
-		printf("GPIO_EX:can not init GPIOE\n");
-		return -1;
+            //Ch450Write(BCD_decode_tab[3],BCD_decode_tab[0],BCD_decode_tab[0]);
+            printf("GPIO_EX:can not init GPIOE\n");
+            return -1;
 	}
 	else
 	{
-		//Ch450Write(BCD_decode_tab[0],BCD_decode_tab[0],BCD_decode_tab[0]);
+            printf("GPIO_EX:SUCCESS\n");
+            //Ch450Write(BCD_decode_tab[0],BCD_decode_tab[0],BCD_decode_tab[0]);
 	}
 	return 0;
 }
@@ -92,7 +94,11 @@ int SetLed(int val)
  */
 int TurnLedOn()
 {
-	return SetLed(1);
+#ifdef NUC951
+    return SetLed(0);
+#else
+    return SetLed(1);
+#endif
 }
 
 /*!
@@ -101,5 +107,9 @@ int TurnLedOn()
  */
 int TurnLedOff()
 {
-	return SetLed(0);
+#ifdef NUC951
+    return SetLed(1);
+#else
+    return SetLed(0);
+#endif
 }

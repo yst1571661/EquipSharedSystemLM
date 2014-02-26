@@ -27,79 +27,86 @@ static FILE * fp_flash;
 
 int write_at24c02b_serial(unsigned int addr, unsigned char * buffer, unsigned int size)
 {
-	if ( (unsigned long long)addr + size >= MAX_ADDR || NULL == fp_flash ) {
-		return -1;
-	}
+    if ( (unsigned long long)addr + size >= MAX_ADDR || NULL == fp_flash ) {
+            return -1;
+    }
 
-	if ( fseek(fp_flash, addr, SEEK_SET) < 0 ) {
-		printf("\n fseek error \n");
-		return -1;
-	}
+    if ( fseek(fp_flash, addr, SEEK_SET) < 0 ) {
+            printf("\n fseek error \n");
+            return -1;
+    }
 
-	if ( fwrite(buffer, 1, size, fp_flash) != size) {
-		printf("\n fseek error \n");
-		return -1;
-	}
-	fflush(fp_flash);
-	return 0;
+    if ( fwrite(buffer, 1, size, fp_flash) != size) {
+            printf("\n fwrite error \n");
+            return -1;
+    }
+    fflush(fp_flash);
+    return 0;
 }
 
 
 int init_at24c02b()
 {
-	if ( NULL != fp_flash ) {
-		fclose(fp_flash);
-	}
+    unsigned char buffer[MAX_ADDR];
+    int BufSerial=0;
 
-	fp_flash = fopen(FP_FILE, "wb+");
-	if ( NULL == fp_flash) {
-		return -1;
-	}
 
-	return 0;
+    if ( NULL != fp_flash ) {
+            fclose(fp_flash);
+    }
+
+    fp_flash = fopen(FP_FILE, "rb+");
+    if ( NULL == fp_flash) {
+        fp_flash = fopen(FP_FILE, "wb+");
+        if ( NULL == fp_flash) {
+            return -1;
+        }
+    }
+    return 0;
 }
 
 
 
 int read_at24c02b(unsigned int addr)
 {
-	unsigned char buf;
+    unsigned char buf;
+    int i;
 
-	if ( addr >= MAX_ADDR || NULL == fp_flash ) {
-		printf("\n para error read_at24c02b\n");
-		return -1;
-	}
+    if ( addr >= MAX_ADDR || NULL == fp_flash ) {
+        printf("\n para error read_at24c02b\n");
+        return -1;
+    }
 
-	if ( fseek(fp_flash, addr, SEEK_SET) < 0 ) {
-		printf("\n fseek error \n");
-		return -1;
-	}
+    if ( fseek(fp_flash, addr, SEEK_SET) < 0 ) {
+        perror("\n fseek error \n");
+        return -1;
+    }
 
-	if ( fread(&buf, 1, 1, fp_flash) != 1) {
-		printf("\n fseek error \n");
-		return -1;
-	}
-	return buf;
+    if ( fread(&buf, 1, 1, fp_flash) != 1) {
+        printf("\n New EEPROM! \n");
+        return -1;
+    }
+    return buf;
 }
 
 int write_at24c02b(unsigned int addr, int data)
 {
-	if ( addr >= MAX_ADDR || NULL == fp_flash ) {
-		printf("\n para error write_at24c02b\n");
-		return -1;
-	}
+    if ( addr >= MAX_ADDR || NULL == fp_flash ) {
+            printf("\n para error write_at24c02b\n");
+            return -1;
+    }
+    //  printf("addr=%d   data=%d\n",addr,data);
+    if ( fseek(fp_flash, addr, SEEK_SET) < 0 ) {
+            perror("\n fseek error \n");
+            return -1;
+    }
 
-	if ( fseek(fp_flash, addr, SEEK_SET) < 0 ) {
-		printf("\n fseek error \n");
-		return -1;
-	}
-
-	if ( fwrite(&data, 1, 1, fp_flash) != 1) {
-		printf("\n fseek error \n");
-		return -1;
-	}
-	fflush(fp_flash);
-	return 0;
+    if ( fwrite(&data, 1, 1, fp_flash) != 1) {
+            printf("\n fwrite error \n");
+            return -1;
+    }
+    fflush(fp_flash);
+    return 0;
 }
 
 #endif

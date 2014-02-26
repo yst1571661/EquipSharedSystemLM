@@ -9,7 +9,7 @@
 #include <fcntl.h>
 
 #include "serial.h"
-#include "card_test.h"
+#include "nuc_config.h"
 
 
 #ifdef NUC951
@@ -120,10 +120,10 @@ static int _read_timeo(int fd, unsigned char * buffer, unsigned int size, unsign
 
 static int _write_cmd(const unsigned char * buffer, unsigned int size)
 {
-	int ret;
+    int ret;
 
-	if ( NULL == buffer )
-		return -1;
+    if ( NULL == buffer )
+        return -1;
 
     do {
 		ret = write(icdev, buffer, size);
@@ -154,7 +154,7 @@ static int _find_card(void)
 	}
 
 	if ( 0x00 != buffer[1] ) {
-		debug("find card error %d", buffer[1]);
+                debug("find card error %d", buffer[1]);
 		return -1;
 	}
 
@@ -165,7 +165,7 @@ static int _find_card(void)
 	}
 
 	_read_timeo(icdev, buffer, 100, ICDEV_TIMEO);
-	printf("\n ret = %d\n", ret);
+        printf("\n ret = %d\n", ret);
 	return 0;
 }
 
@@ -198,28 +198,36 @@ static int _read_card(unsigned char  * pdata, int size)
 	if ( _find_card() < 0 ) {
 		return -1;
 	} else {
-		printf("\n find card ok ~~\n");
+#ifdef  DEBUG
+                printf("\nFind card ok\n");
+#endif
 	}
 
 	read(icdev, buffer, 100);
 	ret = _write_cmd(cmd_read, sizeof(cmd_read));
 	if (  ret != sizeof(cmd_read) ) {
-		debug("\n_write_cmd\n");
+#ifdef  DEBUG
+                debug("\n_write_cmd\n");
+#endif
 		return -1;
 	}
 
 	ret = _read_timeo(icdev, buffer, 6, ICDEV_TIMEO);
 	if ( 6 != ret ) {
-		debug("read timeo ret = %d buffer[0] = %d", ret, buffer[0]);
+#ifdef  DEBUG
+                debug("\nread timeo ret = %d buffer[0] = %d", ret, buffer[0]);
+#endif
 		return -1;
 	}
 
 	if ( 5 != buffer[0] || 0 != buffer[1]) {
-		debug("\nread card error\n");
+#ifdef  DEBUG
+                debug("\nread card error\n");
+#endif
 		return -1;
 	}
 
-	debug("reads card:%x %x %x %x %x %x", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+        debug("\nreads card:%x %x %x %x %x %x", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 
 	pdata[0] = buffer[2];
 	pdata[1] = buffer[3];
@@ -229,7 +237,9 @@ static int _read_card(unsigned char  * pdata, int size)
 
 	ret = _write_cmd(cmd_state, sizeof(cmd_state));
 	if (  sizeof(cmd_state) != ret ) {
+#ifdef  DEBUG
 		debug("\n_write_cmd\n");
+#endif
 		return -1;
 	}
 	_read_timeo(icdev, buffer, 100, ICDEV_TIMEO);
@@ -273,38 +283,51 @@ unsigned long CardRead()
 	unsigned long card = 0;
 
 	if ( _read_card(buffer, 4) < 0)
-		return 0xFFFFFFFF;
+        {
+            return 0;
+        }
 
-	card += buffer[3];
-	card += (buffer[2] << 8);
-	card += (buffer[1] << 16);
-	card += (buffer[0] << 24);
+        card += buffer[0];
+        card += (buffer[1] << 8);
+        card += (buffer[2] << 16);
+        card += (buffer[3] << 24);
 
-	printf("\n card byte : %x %x %x %x\n", buffer[3], buffer[2], buffer[1], buffer[0]);
+        printf("\n card byte : %x %x %x %x\n", buffer[3], buffer[2], buffer[1], buffer[0]);
+
 	return card;
 }
 
 void card_beep(unsigned char ms)
 {
-	int ret;
+        int ret,i;
 	unsigned char buffer[100];
 
 	read(icdev, buffer, 100);
+#ifdef  DEBUG
+        for(i=0;i<100;i++)
+        {
+            printf("buffer[%d]=%d\n",i,buffer[i]);
+        }
+#endif
 	cmd_sound[2] = ms;
 	ret = _write_cmd(cmd_sound, sizeof(cmd_sound));
 	if (  ret != sizeof(cmd_sound) ) {
-		debug("\n_write_cmd\n");
+#ifdef  DEBUG
+                debug("\n_write_cmd\n");
+#endif
 		return ;
 	}
 	_read_timeo(icdev, buffer, 2, ICDEV_TIMEO);
 
 	ret = _write_cmd(cmd_state, sizeof(cmd_state));
 	if (  ret != sizeof(cmd_state) ) {
-		debug("\n_write_cmd\n");
+#ifdef  DEBUG
+                debug("\n_write_cmd\n");
+#endif
 		return ;
 	}
 	_read_timeo(icdev, buffer, 2, ICDEV_TIMEO);
-	usleep(10000);
+        usleep(20000);
 	read(icdev, buffer, 100);
 }
 

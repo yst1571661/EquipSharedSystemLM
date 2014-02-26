@@ -8,7 +8,6 @@
 #ifndef NUC951_RTC_H_
 #define NUC951_RTC_H_
 
-#define NUC951
 
 int init_ds3231();
 void get_time(struct rtc_time * tm);
