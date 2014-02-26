@@ -3595,7 +3595,7 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
-        //system("echo xxx > /dev/watchdog");
+        system("echo xxx > /dev/watchdog");
         ReadSysTime();
 
         if(sys_tm->tm_sec<=4)

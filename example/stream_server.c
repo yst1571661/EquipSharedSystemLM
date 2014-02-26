@@ -745,6 +745,11 @@ int main(int argc, char * argv[])
         Err_Check.photo = 0;
     }
 #if RELEASE_MODE
+    if(system("ifconfig eth0 up")!=0)
+    {
+        PrintScreen("system error(3)");
+    }
+    printf("Reset eth0 successfully\n");
     system("sleep 1");
     printf("ifconfig eth0 down\n");
     if(system("ifconfig eth0 down")!=0)
@@ -768,7 +773,6 @@ int main(int argc, char * argv[])
 #else
     /*动态获取IP、子网掩码、网关、DNS*/
     system("udhcpc -q &");
-    printf("DHCP MODE\n");
 #endif
 #endif
     // start device to work
