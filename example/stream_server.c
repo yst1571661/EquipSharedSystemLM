@@ -508,6 +508,7 @@ int main(int argc, char * argv[])
     system("mkdir /mnt/log");
     system("mkdir /mnt/work");
     system("mkdir /mnt/safe");
+    system("touch /mnt/local.log");
     /*读取备份的日志*/
     sprintf(SysCmd,"cp %s %s",LOGFILEBACKDIR,LOGFILETMPDIR);
     system(SysCmd);

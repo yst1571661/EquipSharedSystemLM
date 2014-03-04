@@ -3932,7 +3932,7 @@ void* CardPacketSend(void *arg)         //查询参数
         }
         /********************************************************************/
         /*读卡频率*/
-        if(cardcount == FREQ_HIGH)
+        if(cardcount == FREQ_LOW)
         {
             ReadSysTime();
             /*定时备份暂存日志*/
