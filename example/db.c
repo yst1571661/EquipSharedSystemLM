@@ -12,11 +12,19 @@ GDBM_FILE db_open(char *filename)
     printf("\ndb_open");
 #endif
     if (filename == NULL)
+    {
+        printf("Error filename");
         return NULL;
+    }
     if ((pf = gdbm_open(filename, 0,  GDBM_WRCREAT | GDBM_SYNC, S_IRUSR | S_IWUSR, NULL)) != NULL)
+    {
            return pf;
+    }
     else
+    {
+
         return NULL;
+    }
 }
 
 int db_close(GDBM_FILE gdb_ptr)

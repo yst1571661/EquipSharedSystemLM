@@ -202,7 +202,7 @@ static int SockServerInit()
         return -1;
     }
 
-    bzero(&gserver_addr, sizeof(gserver_addr));
+    memset(&gserver_addr,0,sizeof(gserver_addr));
     gserver_addr.sin_family = AF_INET;
     gserver_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     gserver_addr.sin_port = htons(PORT);
@@ -407,6 +407,10 @@ static int HandleNewConn(int fdListen)
             sttConnSock[Loopi].curReadth = 0;
             sttConnSock[Loopi].packBuffIn = (unsigned char *)malloc(sizeof(char)*RECV_BUFF_SIZE);
             sttConnSock[Loopi].packBuffOut = (unsigned char *)malloc(sizeof(char)*SEND_BUFF_SIZE);
+            if(NULL==(void *)(sttConnSock[Loopi].packBuffIn||sttConnSock[Loopi].packBuffOut))
+            {
+                ProtectedBoot();
+            }
             sttConnSock[Loopi].isPid = 0;
             sttConnSock[Loopi].noProbes = 0;
 
@@ -1368,6 +1372,10 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
             DebugPrintf("\n-----open dbm id:%d-----",gdbm_ordertimebak);
 
             ansData = malloc(72);
+            if(NULL==ansData)
+            {
+                ProtectedBoot();
+            }
 
             ansData[0] = 0x00;
             ansData[1] = 0x02;
@@ -2332,6 +2340,10 @@ void parseRoutes(struct nlmsghdr *nlHdr, struct route_info *rtInfo, char *gatewa
     struct in_addr gate;
 
     tempBuf = (char *)malloc(100);
+    if(NULL==tempBuf)
+    {
+        ProtectedBoot();
+    }
     rtMsg = (struct rtmsg *)NLMSG_DATA(nlHdr);
     // If the route is not for AF_INET or does not belong to main routing table
     //then return.
@@ -3589,6 +3601,7 @@ void* WatchDog(void *arg)
     int Loopi=0;
     int LoopTime=0;
     char cmd[30];
+    unsigned long cur_cardsnr;
     while(1)
     {
         Loopi++;
@@ -3596,11 +3609,19 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
-        system("echo xxx > /dev/watch_dog");
+        //system("echo xxx > /dev/watch_dog");
         ReadSysTime();
+
+
+        if(!beginupload)
+        {
+            //读取卡号
+            cur_cardsnr = CardRead();
+        }
+
         if(sys_tm->tm_sec<=4)
         {
-            /*在每个小时的第一分钟打印重启次数*/
+            //在每个小时的第一分钟打印重启次数
             if(sys_tm->tm_min==0)
             {
                 if(sys_tm->tm_hour!=0)
@@ -3610,12 +3631,12 @@ void* WatchDog(void *arg)
                 }
                 else
                 {
-                    /*每天初始化重启次数*/
+                    //每天初始化重启次数
                     reboot_count = 0;
                     write_at24c02b(243,0);
                 }
             }
-            /*ping 服务器及网关，只要有一个通就说明网络是通的*/
+            //ping 服务器及网关，只要有一个通就说明网络是通的
 #if RELEASE_MODE
 #else
         PrintScreen("\n----- PingServerRet1 = %d -----\n",PingServerRet);
@@ -3631,7 +3652,7 @@ void* WatchDog(void *arg)
             }
             else
             {
-                /*检测动态获取线程是否僵死，若长时间无反映则kill掉该进程*/
+                //检测动态获取线程是否僵死，若长时间无反映则kill掉该进程
                 if(PidGetIp!=0)
                 {
                     IpFlag++;
@@ -3841,6 +3862,7 @@ void* CardPacketSend(void *arg)         //查询参数
             DebugPrintf("\n-----there is no user.xml open err store-----\n");
         }
         DebugPrintf("\n-----user.xml open err-----\n");
+        perror("\n-----user.xml open err-----\n");
     }
     else {
         /*取队列第一个key*/
@@ -3874,6 +3896,8 @@ void* CardPacketSend(void *arg)         //查询参数
         system("rm /tmp/devices.xml");
         gdbm_user = db_open("/tmp/devices.xml");
         DebugPrintf("\n-----device.xml open err-----\n");
+
+        perror("\n-----device.xml open err-----\n");
     }
     /*打开读卡数据库*/
     gdbm_card = db_open("/tmp/cards.xml");					//get a record
@@ -3882,6 +3906,8 @@ void* CardPacketSend(void *arg)         //查询参数
         system("rm /tmp/devices.xml");
         gdbm_card = db_open("/tmp/cards.xml");
         DebugPrintf("\n-----cards.xml open err-----\n");
+
+        perror("\n-----cards.xml open err-----\n");
     }
     else
     {
@@ -3940,10 +3966,18 @@ void* CardPacketSend(void *arg)         //查询参数
                 if(backup_flag==0)
                 {
                     PrintScreen("\n-----Have Backup Log-----\n");
-                    char *SysCmd=malloc(50);
-                    sprintf(SysCmd,"cp %s %s",LOGFILETMPDIR,LOGFILEBACKDIR);
-                    system(SysCmd);
-                    backup_flag = 1;
+                    char *SysCmd;
+                    if(NULL==(SysCmd = malloc(50)))
+                    {
+                        DebugPrintf("Malloc Error!\n");
+                    }
+                    else
+                    {
+                        sprintf(SysCmd,"cp %s %s",LOGFILETMPDIR,LOGFILEBACKDIR);
+                        system(SysCmd);
+                        free(SysCmd);
+                        backup_flag = 1;
+                    }
                 }
             }
             else

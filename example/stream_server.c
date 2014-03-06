@@ -129,11 +129,13 @@ static void * save_file(void * arg)
     int presec_time = 0;
     int save_curhour = 0;
     int save_prehour = 0;
+    int timeymd=0;
     time_t cur_seconds = 0;
     time_t pre_seconds = 0;
 
 
     unsigned char read_sys_Time[15];
+    char *cmd;
     ret = spct_decode_open(SPCT_CODEC_H264, &videodecoder, 0);
     if(ret)
     {
@@ -375,7 +377,20 @@ static void * save_file(void * arg)
                         system("cp /tmp/cards.xml /mnt/cards.xml");
                         pthread_mutex_unlock(&cardfile_lock);
                     }
-
+                    if(NULL==(cmd = malloc(40)))
+                    {
+                        system("reboot");
+                    }
+                    //É¾³ýÇ°Ò»ÌìÍ¼Æ¬
+                    timeymd = atoi(sys_Time);
+                    timeymd /= 1000000;
+                    timeymd--;
+                    sprintf(cmd,"rm -rf /mnt/work/%d*.jpg",timeymd);
+                    if((curhou_time==0)&&(curmin_time==30)&&(cursec_time)==0)
+                    {
+                        sprintf(cmd+8,"%");
+                        system(cmd);
+                    }
                     if(curhou_time != prehou_time)
                     {
                         //startsyncbmp = 1;
@@ -495,7 +510,11 @@ int main(int argc, char * argv[])
     Server_Context context;
     char url[256];
     int res;
-    char *SysCmd=malloc(30);
+    char *SysCmd;
+    if(NULL==(SysCmd = malloc(40)))
+    {
+        ProtectedBoot();
+    }
     pthread_attr_t attr;
     pthread_t threadId1;
 

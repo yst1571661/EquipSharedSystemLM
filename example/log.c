@@ -46,6 +46,10 @@ int init_log(char *filename, int level)
         return -1;
 
     log = malloc(sizeof(struct abt_log));
+    if(NULL==log)
+    {
+        system("reboot");
+    }
 
     if (log == NULL) {
         perror("malloc");
