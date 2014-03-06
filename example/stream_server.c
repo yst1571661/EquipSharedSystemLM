@@ -135,6 +135,7 @@ static void * save_file(void * arg)
 
 
     unsigned char read_sys_Time[15];
+    unsigned char read_Time[15];
     char *cmd;
     ret = spct_decode_open(SPCT_CODEC_H264, &videodecoder, 0);
     if(ret)
@@ -180,7 +181,31 @@ static void * save_file(void * arg)
         //BASIC_LEVEL_ = 24000;
         ////////////////////////
         // get data from data queue
+
+
         data = dq_get(&context->dq);
+
+        ReadSysTime();
+        memcpy(read_sys_Time, sys_Time, 15);
+        cursec_time = (read_sys_Time[12] - 48)*10 + (read_sys_Time[13] - 48);
+        curmin_time = (read_sys_Time[10] - 48)*10+(read_sys_Time[11] - 48);
+        curhou_time = (read_sys_Time[8] - 48)*10+(read_sys_Time[9] - 48);
+
+        //删除前一天图片
+        if((curhou_time==0)&&(curmin_time==30)&&(cursec_time)==0)
+        {
+            memcpy(read_Time, sys_Time, 15);
+            read_Time[8]='\0';
+            printf("read_Time=%s\n",read_Time);
+            timeymd = atoi(read_Time);
+            printf("timeymd = %d\n",timeymd);
+            timeymd--;
+            printf("timeymd = %d\n",timeymd);
+            sprintf(cmd,"rm -rf /mnt/work/%d*.jpg",timeymd);
+            printf("%s\n",cmd);
+            system(cmd);
+        }
+
         if(data == NULL)
         {
             DebugPrintf("\n----- data == NULL -----");
@@ -193,7 +218,6 @@ static void * save_file(void * arg)
                 if(data->flags == DATA_VIDEO_I)
                 {
                     ///////////////////////////////////////////////////////////////////
-                    ReadSysTime();
                     memcpy(read_sys_Time, sys_Time, 15);
                     curmin_time = (read_sys_Time[10] - 48)*10+(read_sys_Time[11] - 48);
                     curhou_time = (read_sys_Time[8] - 48)*10+(read_sys_Time[9] - 48);
@@ -380,16 +404,6 @@ static void * save_file(void * arg)
                     if(NULL==(cmd = malloc(40)))
                     {
                         system("reboot");
-                    }
-                    //删除前一天图片
-                    timeymd = atoi(sys_Time);
-                    timeymd /= 1000000;
-                    timeymd--;
-                    sprintf(cmd,"rm -rf /mnt/work/%d*.jpg",timeymd);
-                    if((curhou_time==0)&&(curmin_time==30)&&(cursec_time)==0)
-                    {
-                        sprintf(cmd+8,"%");
-                        system(cmd);
                     }
                     if(curhou_time != prehou_time)
                     {

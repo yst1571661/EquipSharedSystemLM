@@ -8,21 +8,23 @@
 GDBM_FILE db_open(char *filename)
 {
     GDBM_FILE pf;
+    char *error;
+    gdbm_error errno;
 #if DEBUG
     printf("\ndb_open");
 #endif
     if (filename == NULL)
     {
-        printf("Error filename");
         return NULL;
     }
     if ((pf = gdbm_open(filename, 0,  GDBM_WRCREAT | GDBM_SYNC, S_IRUSR | S_IWUSR, NULL)) != NULL)
     {
-           return pf;
+        error = gdbm_strerror(errno);
+        printf(error\n);
+        return pf;
     }
     else
     {
-
         return NULL;
     }
 }

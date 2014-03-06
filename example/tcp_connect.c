@@ -112,6 +112,7 @@ struct route_info
 int lederrcount;
 int ledtwinklebegin;
 int sockreleasebegin;
+pthread_mutex_t readcard_lock;
 
 
 static int card_ack;
@@ -3609,15 +3610,37 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
-        //system("echo xxx > /dev/watch_dog");
+#if RELEASE_MODE
+        system("echo xxx > /dev/watch_dog");
+#endif
         ReadSysTime();
 
 
         if(!beginupload)
         {
             //读取卡号
+            pthread_mutex_lock(&readcard_lock);
             cur_cardsnr = CardRead();
+            pthread_mutex_unlock(&readcard_lock);
         }
+        /*需要重启读卡器*/
+        if ((cur_cardsnr == -2)&&!beginupload)
+        {
+            card_errcount++;
+            if(card_errcount>=20)
+            {
+#if RELEASE_MODE
+                ProtectedBoot();
+#endif
+            }
+            close_card_uart();
+            init_card_uart();
+        }
+        else
+        {
+            card_errcount = 0;
+        }
+
 
         if(sys_tm->tm_sec<=4)
         {
@@ -3933,12 +3956,8 @@ void* CardPacketSend(void *arg)         //查询参数
     beginsendcard = 1;
 
 #if DEBUG_DATA
-    for (Loopi = 0; Loopi <  8; Loopi++) {
         DebugPrintf("\ncur_card=%s", cur_card);
-    }
-    for (Loopi = 0; Loopi < 14; Loopi++) {
         DebugPrintf("\ncard_time=%s", card_time);
-    }
 #endif
     //cur_card[0] = 0;
     cur_card[Loopi] = 0;
@@ -3990,25 +4009,9 @@ void* CardPacketSend(void *arg)         //查询参数
             if(!beginupload)
             {
                 /*读取卡号*/
+                pthread_mutex_lock(&readcard_lock);
                 cur_cardsnr = CardRead();
-            }
-
-            /*需要重启读卡器*/
-            if ((cur_cardsnr == -2)&&!beginupload)
-            {
-                card_errcount++;
-                if(card_errcount>=20)
-                {
-#if RELEASE_MODE
-                    ProtectedBoot();
-#endif
-                }
-                close_card_uart();
-                init_card_uart();
-            }
-            else
-            {
-                card_errcount = 0;
+                pthread_mutex_unlock(&readcard_lock);
             }
 
             /*老版本的dc_reset失败时返回1，目前版本没用*/

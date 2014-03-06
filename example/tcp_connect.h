@@ -155,6 +155,11 @@ struct err_check {
 
 char snrnum[20];
 
+/*存放之前一次所刷8位卡号*/
+static unsigned long pre_cardsnr = 0;
+/*存放8位卡号的数值*/
+static unsigned long cur_cardsnr = 0;
+
 int Led_delay;
 int Led_on;
 int Led_off;
