@@ -19,12 +19,13 @@ GDBM_FILE db_open(char *filename)
     }
     if ((pf = gdbm_open(filename, 0,  GDBM_WRCREAT | GDBM_SYNC, S_IRUSR | S_IWUSR, NULL)) != NULL)
     {
-        error = gdbm_strerror(errno);
-        printf(error\n);
         return pf;
     }
     else
     {
+        error = gdbm_strerror(errno);
+        printf(error);
+        printf("\n");
         return NULL;
     }
 }

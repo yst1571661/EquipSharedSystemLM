@@ -3610,9 +3610,9 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
-#if RELEASE_MODE
+//#if RELEASE_MODE
         system("echo xxx > /dev/watch_dog");
-#endif
+//#endif
         ReadSysTime();
 
 
@@ -3620,7 +3620,9 @@ void* WatchDog(void *arg)
         {
             //读取卡号
             pthread_mutex_lock(&readcard_lock);
+            system("echo xxx > /dev/watch_dog");
             cur_cardsnr = CardRead();
+            system("echo xxx > /dev/watch_dog");
             pthread_mutex_unlock(&readcard_lock);
         }
         /*需要重启读卡器*/
@@ -3864,8 +3866,8 @@ void* CardPacketSend(void *arg)         //查询参数
 
     Init_Webserver_Par();
     int CardPacketSend_count = 0;
-    //system("rm -rf /tmp/*.xml");
-    //system("cp -rf /mnt/*.xml /tmp/");
+    system("rm -rf /tmp/*.xml");
+    system("cp -rf /mnt/*.xml /tmp/");
 
     key.dptr = "user_version";
     key.dsize = strlen("user_version") + 1;
@@ -4010,7 +4012,9 @@ void* CardPacketSend(void *arg)         //查询参数
             {
                 /*读取卡号*/
                 pthread_mutex_lock(&readcard_lock);
+                system("echo xxx > /dev/watch_dog");
                 cur_cardsnr = CardRead();
+                system("echo xxx > /dev/watch_dog");
                 pthread_mutex_unlock(&readcard_lock);
             }
 
