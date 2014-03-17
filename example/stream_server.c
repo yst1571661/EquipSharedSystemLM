@@ -584,7 +584,6 @@ int main(int argc, char * argv[])
     system("udhcpc -t 2 -T 3 -q &");
 #endif
 #endif
-
     ////////////////////////////////////////////////////////////////////
     memset(&context , 0 , sizeof(context));
 
@@ -684,6 +683,7 @@ int main(int argc, char * argv[])
             return -1;
     }
 
+    printf("\n5\n");
     //create stream session
     context.session = streaming_new_session(&context.server,
                                     0,	//channel 0
@@ -694,6 +694,7 @@ int main(int argc, char * argv[])
                                     1	  // stream video
                                     );
 
+    printf("\n6\n");
     if(context.session == NULL)
     {
             fprintf(stderr, "Create streaming session fail\n");
@@ -701,6 +702,7 @@ int main(int argc, char * argv[])
 
             return -1;
     }
+    printf("\n7\n");
 
     streaming_get_session_url(context.session, url, sizeof(url));
     DebugPrintf("spct streaming session URL: %s\n", url);
@@ -710,6 +712,7 @@ int main(int argc, char * argv[])
     context.ipcam.fun = send_data;
     streaming_server_start(&context.server);
 
+    printf("\n7\n");
     ///////////////////////////////////////////////////////////////////////////
     cam_start_work(&context.ipcam);
 
@@ -781,6 +784,7 @@ int main(int argc, char * argv[])
         Err_Check.photo = 0;
     }
 
+    printf("\n0\n");
     // start device to work
     //cam_start_work(&context.ipcam);
 

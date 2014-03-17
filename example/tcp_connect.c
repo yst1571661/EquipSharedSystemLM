@@ -2681,6 +2681,7 @@ int net_configure(void)   //返回0网络配置成功，返回-1，网络配置失败
 void BmpFileSend(char * bmpfilename)
 {
     int Loopi;
+    long curpos = 0;    //文件位置
     unsigned char transBuffer[WAVE_BUFF_LEN];
     unsigned char sendfilename[20];
     FILE *output = NULL;
@@ -2703,9 +2704,22 @@ void BmpFileSend(char * bmpfilename)
             transBuffer[6] = (sendfilename[13] - 48)*10 + sendfilename[14] - 48;
             transBuffer[7] = (sendfilename[15] - 48)*10 + sendfilename[16] - 48;
 
+            //判断图片是否采集正常
             output = fopen (bmpfilename, "ab+");
+            if (output == NULL) {
+                    DebugPrintf("\n----open %s err--------", bmpfilename);
+                    return;
+            }
+            fseek(output,0,SEEK_END);   //locate to the end of the file
+            curpos = ftell(output);         //the lenth of the file
+            if(curpos<10240)
+            {
+                fclose(output);
+                DelFile(bmpfilename);
+                return;
+            }
+
             pthread_mutex_lock(&sttConnSock[0].lockBuffOut);
-            //DebugPrintf("\n--- begin send bmpfilename =  %s ---\n",bmpfilename);
             while(!feof(output))
             {
                     freadcount = fread(transBuffer+9, 1,1000, output);
@@ -3610,9 +3624,9 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
-//#if RELEASE_MODE
+#if RELEASE_MODE
         system("echo xxx > /dev/watch_dog");
-//#endif
+#endif
         ReadSysTime();
 
 
@@ -3620,9 +3634,13 @@ void* WatchDog(void *arg)
         {
             //读取卡号
             pthread_mutex_lock(&readcard_lock);
+#if RELEASE_MODE
             system("echo xxx > /dev/watch_dog");
+#endif
             cur_cardsnr = CardRead();
+#if RELEASE_MODE
             system("echo xxx > /dev/watch_dog");
+#endif
             pthread_mutex_unlock(&readcard_lock);
         }
         /*需要重启读卡器*/
@@ -3778,8 +3796,10 @@ void* DynamicGetIp(void *arg)
             }
             else if(PidGetIp == 0)
             {
+#if RELEASE_MODE
                 if((IpRet = execl("/sbin/udhcpc","udhcpc","-t","20","-T","3","-q",(char*)0)) < 0 )
                     perror("\nexecle error\n");
+#endif
                 PrintScreen("IpRet = %d\n",IpRet);
             }
 
@@ -3880,14 +3900,15 @@ void* CardPacketSend(void *arg)         //查询参数
                 user_version = 0;
         /*将之前的数据删除，创建新的数据库，用户更新*/
         system("rm /tmp/user.xml");
+        system("ls /tmp");
         gdbm_user = db_open("/tmp/user.xml");
         if (gdbm_user == NULL)
                 DebugPrintf("\n----err---");
         if (db_store(gdbm_user, key, data) < 0) {
             DebugPrintf("\n-----there is no user.xml open err store-----\n");
+            DebugPrintf("\n-----user.xml open err-----\n");
+            perror("\n-----user.xml open err-----\n");
         }
-        DebugPrintf("\n-----user.xml open err-----\n");
-        perror("\n-----user.xml open err-----\n");
     }
     else {
         /*取队列第一个key*/
@@ -3920,19 +3941,23 @@ void* CardPacketSend(void *arg)         //查询参数
     if (gdbm_device == NULL) {
         system("rm /tmp/devices.xml");
         gdbm_user = db_open("/tmp/devices.xml");
-        DebugPrintf("\n-----device.xml open err-----\n");
-
-        perror("\n-----device.xml open err-----\n");
+        if(gdbm_user==NULL)
+        {
+            DebugPrintf("\n-----device.xml open err-----\n");
+            perror("\n-----device.xml open err-----\n");
+        }
     }
     /*打开读卡数据库*/
-    gdbm_card = db_open("/tmp/cards.xml");					//get a record
+    gdbm_card = db_open("/tmp/cards.xml");			//get a record
     if (gdbm_card == NULL)
     {
-        system("rm /tmp/devices.xml");
+        system("rm /tmp/cards.xml");
         gdbm_card = db_open("/tmp/cards.xml");
-        DebugPrintf("\n-----cards.xml open err-----\n");
-
-        perror("\n-----cards.xml open err-----\n");
+        if(gdbm_card==NULL)
+        {
+            DebugPrintf("\n-----cards.xml open err-----\n");
+            perror("\n-----cards.xml open err-----\n");
+        }
     }
     else
     {
@@ -3943,7 +3968,11 @@ void* CardPacketSend(void *arg)         //查询参数
     if (gdbm_ordertime == NULL) {
             system("rm /tmp/ordertime.xml");
             gdbm_ordertime = db_open("/tmp/ordertime.xml");
-            DebugPrintf("\n-----ordertime.xml open err-----\n");
+            if(gdbm_card==NULL)
+            {
+                DebugPrintf("\n-----ordertime.xml open err-----\n");
+                perror("\n-----ordertime.xml open err-----\n");
+            }
     }
     db_close(gdbm_ordertime);
     /*读取当前卡号*/
@@ -3958,9 +3987,10 @@ void* CardPacketSend(void *arg)         //查询参数
     beginsendcard = 1;
 
 #if DEBUG_DATA
-        DebugPrintf("\ncur_card=%s", cur_card);
-        DebugPrintf("\ncard_time=%s", card_time);
+        //DebugPrintf("\ncur_card=%s", cur_card);
+        //DebugPrintf("\ncard_time=%s", card_time);
 #endif
+    printf("START\n");
     //cur_card[0] = 0;
     cur_card[Loopi] = 0;
     card_errcount  = 0;
@@ -4012,9 +4042,13 @@ void* CardPacketSend(void *arg)         //查询参数
             {
                 /*读取卡号*/
                 pthread_mutex_lock(&readcard_lock);
+#if RELEASE_MODE
                 system("echo xxx > /dev/watch_dog");
+#endif
                 cur_cardsnr = CardRead();
+#if RELEASE_MODE
                 system("echo xxx > /dev/watch_dog");
+#endif
                 pthread_mutex_unlock(&readcard_lock);
             }
 

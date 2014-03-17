@@ -1,4 +1,5 @@
 #include "db.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include<sys/types.h>
@@ -8,7 +9,7 @@
 GDBM_FILE db_open(char *filename)
 {
     GDBM_FILE pf;
-    char *error;
+    char *error=malloc(30);
     gdbm_error errno;
 #if DEBUG
     printf("\ndb_open");
@@ -17,7 +18,7 @@ GDBM_FILE db_open(char *filename)
     {
         return NULL;
     }
-    if ((pf = gdbm_open(filename, 0,  GDBM_WRCREAT | GDBM_SYNC, S_IRUSR | S_IWUSR, NULL)) != NULL)
+    if ((pf = gdbm_open(filename, 0,  GDBM_WRCREAT | GDBM_SYNC , S_IRUSR | S_IWUSR, NULL)) != NULL)
     {
         return pf;
     }
