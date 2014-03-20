@@ -299,7 +299,7 @@ static int SockPackSend(unsigned char cmdWord, int fdConn, stuConnSock *sttParm,
     tagAddr[6] = packLen & 0xff;
 
 
-#if NDEBUG
+#if 1//NDEBUG
     do {
         if (packLen > 100)
             break;
@@ -312,7 +312,9 @@ static int SockPackSend(unsigned char cmdWord, int fdConn, stuConnSock *sttParm,
     {
         do
         {
+            printf("TO SEND\n");
             curWrite = send(fdConn, tagAddr, packLen-sentLen, 0);
+            printf("curWrite = %d\n",curWrite);
             usleep(10000);
             if((curWrite<0) && (errno==EAGAIN))
             {
@@ -2687,59 +2689,50 @@ void BmpFileSend(char * bmpfilename)
     FILE *output = NULL;
     int freadcount = 0;
 
+    output = fopen (bmpfilename, "ab+");
+    if (output == NULL) {
+            DebugPrintf("\n----open %s err--------", bmpfilename);
+            return;
+    }
+    fseek(output,0,SEEK_SET); //locate to the start of the file
+
     PrintScreen("\n-----beginsendbmp = %d-----\n",beginsendbmp);
 
     if(beginsendbmp)
     {
     if (sttConnSock[0].fdSock <= 0)
+    {
         return;
-            transBuffer[0] = 0x00;
-            transBuffer[1] = 0x01;
-            transBuffer[2] = 0x05;
-            memcpy(sendfilename,bmpfilename,19);
-            transBuffer[8] = (sendfilename[17] - 48)*10 + sendfilename[18] - 48;
-            transBuffer[3] = (sendfilename[7] - 48)*10 + sendfilename[8] - 48;
-            transBuffer[4] = (sendfilename[9] - 48)*10 + sendfilename[10] - 48;
-            transBuffer[5] = (sendfilename[11] - 48)*10 + sendfilename[12] - 48;
-            transBuffer[6] = (sendfilename[13] - 48)*10 + sendfilename[14] - 48;
-            transBuffer[7] = (sendfilename[15] - 48)*10 + sendfilename[16] - 48;
+    }
+    transBuffer[0] = 0x00;
+    transBuffer[1] = 0x01;
+    transBuffer[2] = 0x05;
+    memcpy(sendfilename,bmpfilename,19);
+    transBuffer[8] = (sendfilename[17] - 48)*10 + sendfilename[18] - 48;
+    transBuffer[3] = (sendfilename[7] - 48)*10 + sendfilename[8] - 48;
+    transBuffer[4] = (sendfilename[9] - 48)*10 + sendfilename[10] - 48;
+    transBuffer[5] = (sendfilename[11] - 48)*10 + sendfilename[12] - 48;
+    transBuffer[6] = (sendfilename[13] - 48)*10 + sendfilename[14] - 48;
+    transBuffer[7] = (sendfilename[15] - 48)*10 + sendfilename[16] - 48;
 
-            //判断图片是否采集正常
-            output = fopen (bmpfilename, "ab+");
-            if (output == NULL) {
-                    DebugPrintf("\n----open %s err--------", bmpfilename);
-                    return;
-            }
-            fseek(output,0,SEEK_END);   //locate to the end of the file
-            curpos = ftell(output);         //the lenth of the file
-            if(curpos<10240)
+    while(!feof(output))
+    {
+            freadcount = fread(transBuffer+9, 1,1000, output);
+            //DebugPrintf("\n--- freadcount =  %d ---\n",freadcount);
+            for (Loopi=0; Loopi<MAX_LINK_SOCK; Loopi++)
             {
-                fclose(output);
-                DelFile(bmpfilename);
-                return;
-            }
-
-            pthread_mutex_lock(&sttConnSock[0].lockBuffOut);
-            while(!feof(output))
-            {
-                    freadcount = fread(transBuffer+9, 1,1000, output);
-                    //DebugPrintf("\n--- freadcount =  %d ---\n",freadcount);
-                    for (Loopi=0; Loopi<MAX_LINK_SOCK; Loopi++)
+                    if (sttConnSock[Loopi].fdSock>0 && sttConnSock[Loopi].loginLegal>0)
                     {
+                        pthread_mutex_lock(&sttConnSock[Loopi].lockBuffOut);
+                        SockPackSend(CMD_ACK, sttConnSock[Loopi].fdSock, &sttConnSock[Loopi], transBuffer, freadcount+9);
+                        pthread_mutex_unlock(&sttConnSock[Loopi].lockBuffOut);
 
-                            if (sttConnSock[Loopi].fdSock>0 && sttConnSock[Loopi].loginLegal>0)
-                            {
-                                    //pthread_mutex_lock(&sttConnSock[Loopi].lockBuffOut);
-                                    SockPackSend(CMD_ACK, sttConnSock[Loopi].fdSock, &sttConnSock[Loopi], transBuffer, freadcount+9);
-                                    //pthread_mutex_unlock(&sttConnSock[Loopi].lockBuffOut);
-
-                            }
                     }
             }
-            fclose (output);
-            DebugPrintf("\n--- end send bmpfilename =  %s ---",bmpfilename);
-            pthread_mutex_unlock(&sttConnSock[0].lockBuffOut);
-            DelFile(bmpfilename);
+    }
+    fclose (output);
+    DebugPrintf("\n--- end send bmpfilename =  %s ---",bmpfilename);
+    DelFile(bmpfilename);
     }
 }
 
@@ -3045,6 +3038,7 @@ static void card_sent(unsigned char *transBuffer)
                 else if(cardrecordre != NULL)
                 {
                     PrintScreen("\n-----start to send beginsendcar------\n");
+                    DebugPrintf("\n-----cardrecordre = %s -----",cardrecordre);
                     if(strlen(cardrecordre)<38)		//record at least 38 bytes,delete illegal records
                     {
 #if DEBUG_DATA
@@ -3099,6 +3093,7 @@ static void card_sent(unsigned char *transBuffer)
                                 pthread_mutex_unlock(&cardfile_lock);
                                 resend_count = 0;
                             }
+                            DebugPrintf("\n-----66666-----");
                             beginsendcard = 0;
                             free(cardrecordre);
                             return;
@@ -3106,6 +3101,7 @@ static void card_sent(unsigned char *transBuffer)
                         }
                         else
                         {
+                            DebugPrintf("\n-----777777-----");
                             //pthread_mutex_lock(&cardfile_lock);
                             //system("cp /tmp/cards.xml /mnt/cards.xml");
                             //pthread_mutex_unlock(&cardfile_lock);
@@ -3145,7 +3141,9 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
     for(key_order = gdbm_firstkey(gdbm_ordertime);key_order.dptr;)
     {
         unsigned char tmp_cmp[9],count = 0;
-
+#if RELEASE_MODE
+        //system("echo xxx > /dev/watch_dog");
+#endif
         /*将当前刷卡号保存到user_temp中*/
         sprintf(user_temp, "%08lX",cur_cardsnr);
         memcpy(tmp_cmp,key_order.dptr,8);
@@ -3297,7 +3295,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
         //unsigned char pre_htime[20];
         //int curhour = 0;
         //int prehour = 0;
-        unsigned char file_del[50] = "rm /mnt/work/";
+        unsigned char file_del[50] = "rm /mnt/backup/";
         FILE *output = NULL;
         int freadcount = 0;
         DIR   *   dir;
@@ -3339,12 +3337,17 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                     card_sent(transBuffer);
                     /********************************************************************/
                     PrintScreen("\n-------begin to syncbmp--------");
+                    DebugPrintf("\n-------begin to syncbmp--------");
                 }
 
-                dir = opendir( "/mnt/work/");
+                dir = opendir(PicBackup_Path);
+                if(dir==NULL)
+                {
+                    dir = opendir("/mnt/work");
+                }
+
                 while((ptr = readdir(dir)) != NULL && sttConnSock[0].fdSock > 0)
                 {
-                //if(strcmp(ptr-> d_name,syncbeginFname) >= 0 && strcmp(ptr-> d_name,syncendFname) <= 0)
                 if (strstr(ptr-> d_name,".jpg") != NULL)
                 {
 #if DEBUG_DATA
@@ -3364,7 +3367,6 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
 
                     sprintf(openfilename, "/mnt/work/%s",ptr-> d_name);
                     output = fopen (openfilename, "ab+");
-                    pthread_mutex_lock(&sttConnSock[0].lockBuffOut);
                     DebugPrintf("\n--- begin send bmpfilename =  %s ---",ptr-> d_name);
                     while(!feof(output))
                     {
@@ -3374,18 +3376,17 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                         {
                             if (sttConnSock[Loopi].fdSock>0 && sttConnSock[Loopi].loginLegal>0)
                             {
-                                //pthread_mutex_lock(&sttConnSock[Loopi].lockBuffOut);
+                                pthread_mutex_lock(&sttConnSock[Loopi].lockBuffOut);
                                 SockPackSend(CMD_ACK, sttConnSock[Loopi].fdSock, &sttConnSock[Loopi], transBuffer, freadcount+9);
-                                //pthread_mutex_unlock(&sttConnSock[Loopi].lockBuffOut);
+                                pthread_mutex_unlock(&sttConnSock[Loopi].lockBuffOut);
                             }
                         }
                     }
-                    fclose (output);
+                    fclose(output);
                     DebugPrintf("\n--- end send bmpfilename =  %s ---",ptr-> d_name);
-                    pthread_mutex_unlock(&sttConnSock[0].lockBuffOut);
                     strcat(file_del, ptr-> d_name);
                     system(file_del);
-                    memcpy(file_del, "rm /mnt/work/", strlen("rm /mnt/work/") + 1);
+                    memcpy(file_del, "rm /mnt/backup/", strlen("rm /mnt/backup/") + 1);
                 }
             }
             closedir(dir);
@@ -3610,7 +3611,7 @@ static  void sync_card()
 #define ADDR_BEGIN      60
 
 
-void* WatchDog(void *arg)
+void* KillThread(void *arg)
 {
     int IpFlag=0;
     int Loopi=0;
@@ -3622,45 +3623,9 @@ void* WatchDog(void *arg)
         Loopi++;
         if(Loopi==30)
         {
-            PrintScreen("\n-----Watch Dog Thread Running-----\n");
+            PrintScreen("\n-----KillThread Thread Running-----\n");
         }
-#if RELEASE_MODE
-        system("echo xxx > /dev/watch_dog");
-#endif
         ReadSysTime();
-
-
-        if(!beginupload)
-        {
-            //读取卡号
-            pthread_mutex_lock(&readcard_lock);
-#if RELEASE_MODE
-            system("echo xxx > /dev/watch_dog");
-#endif
-            cur_cardsnr = CardRead();
-#if RELEASE_MODE
-            system("echo xxx > /dev/watch_dog");
-#endif
-            pthread_mutex_unlock(&readcard_lock);
-        }
-        /*需要重启读卡器*/
-        if ((cur_cardsnr == -2)&&!beginupload)
-        {
-            card_errcount++;
-            if(card_errcount>=20)
-            {
-#if RELEASE_MODE
-                ProtectedBoot();
-#endif
-            }
-            close_card_uart();
-            init_card_uart();
-        }
-        else
-        {
-            card_errcount = 0;
-        }
-
 
         if(sys_tm->tm_sec<=4)
         {
@@ -3935,6 +3900,7 @@ void* CardPacketSend(void *arg)         //查询参数
 #endif
         }
     }
+
     /*打开设备数据库*/
     gdbm_device = db_open("/tmp/devices.xml");
 
@@ -3963,6 +3929,7 @@ void* CardPacketSend(void *arg)         //查询参数
     {
         key = gdbm_firstkey(gdbm_card);
     }
+
     /*打开预约时间数据库*/
     gdbm_ordertime = db_open("/tmp/ordertime.xml");
     if (gdbm_ordertime == NULL) {
@@ -3983,6 +3950,7 @@ void* CardPacketSend(void *arg)         //查询参数
     for (Loopi = 0; Loopi < 14; Loopi++) {
         card_time[Loopi] =  read_at24c02b(ADDR_BEGIN+10+Loopi);
     }
+
     /*刚启动的时候将保存的刷卡信息发送给服务器*/
     beginsendcard = 1;
 
@@ -3990,16 +3958,13 @@ void* CardPacketSend(void *arg)         //查询参数
         //DebugPrintf("\ncur_card=%s", cur_card);
         //DebugPrintf("\ncard_time=%s", card_time);
 #endif
-    printf("START\n");
-    //cur_card[0] = 0;
     cur_card[Loopi] = 0;
     card_errcount  = 0;
 
     while(1)
     {
         cardcount++;
-
-        // DebugPrintf("\n---------cardcount = %ld-----\n", cardcount);
+        //DebugPrintf("\n---------cardcount = %ld-----\n", cardcount);
         /******************************服务器增加卡*************************/
         if (begin_query) {
             sync_card();
@@ -4026,7 +3991,6 @@ void* CardPacketSend(void *arg)         //查询参数
                     {
                         sprintf(SysCmd,"cp %s %s",LOGFILETMPDIR,LOGFILEBACKDIR);
                         system(SysCmd);
-                        free(SysCmd);
                         backup_flag = 1;
                     }
                 }
@@ -4036,20 +4000,29 @@ void* CardPacketSend(void *arg)         //查询参数
                 backup_flag = 0;
             }
 #endif
-
             cardcount = 0;
+
             if(!beginupload)
             {
-                /*读取卡号*/
-                pthread_mutex_lock(&readcard_lock);
-#if RELEASE_MODE
-                system("echo xxx > /dev/watch_dog");
-#endif
+                //读取卡号
                 cur_cardsnr = CardRead();
+            }
+            /*需要重启读卡器*/
+            if ((cur_cardsnr == -2)&&!beginupload)
+            {
+                card_errcount++;
+                if(card_errcount>=20)
+                {
 #if RELEASE_MODE
-                system("echo xxx > /dev/watch_dog");
+                    ProtectedBoot();
 #endif
-                pthread_mutex_unlock(&readcard_lock);
+                }
+                close_card_uart();
+                init_card_uart();
+            }
+            else
+            {
+                card_errcount = 0;
             }
 
             /*老版本的dc_reset失败时返回1，目前版本没用*/
@@ -4086,7 +4059,7 @@ void* CardPacketSend(void *arg)         //查询参数
                             break;
                         }
                     }
-                                    /*后一个人和前一个刷卡时间大于5s*/
+                    /*后一个人和前一个刷卡时间大于5s*/
                     else {
                         if (cur_ctime - pre_ctime < CARD_LIMIT) {
                             PrintScreen("\n-----limit = %ds-----\n", CARD_LIMIT);
@@ -4322,7 +4295,6 @@ void* CardPacketSend(void *arg)         //查询参数
             if(devicecount >= 50)
             {
                 beginsendcard = 1;
-                //PrintScreen("\n-----device detecting-----");
                 devicecount = 0;
                 cur_devicestate = ReadVol();
 #if NDEBUG
@@ -4446,6 +4418,7 @@ void* CardPacketSend(void *arg)         //查询参数
         /*电源开，在终端上上下机没有明确的判断，由电源状态来判断*/
         if(Led_on == 1)
         {
+            backup_pic = 1;
             /*如果在上机的时候另一个人刷卡上机*/
             card_beep(50);
             card_beep(50);
@@ -4527,7 +4500,6 @@ void* CardPacketSend(void *arg)         //查询参数
             updata_ordertime_xml = 0;
             system("cp /tmp/ordertime.xml /mnt/ordertime.xml");
         }
-
 /**********************发送设备信息***************************************************************/
         do
         {
@@ -4541,7 +4513,6 @@ void* CardPacketSend(void *arg)         //查询参数
                 pthread_mutex_lock(&sttConnSock[0].lockBuffOut);
                 do
                 {
-                    //devicerecordre = XmlRead("/tmp/device.xml", 1, next1, 0, 0, "record");
 #if NDEBUG
                     DebugPrintf("\n-----------begin send device--------");
 #endif
@@ -4586,7 +4557,6 @@ void* CardPacketSend(void *arg)         //查询参数
                         free(devicerecordre);
                         next1++;
                     }
-                    //DebugPrintf("\n-----hello -----\n");
                 }while(1);
                 pthread_mutex_unlock(&sttConnSock[0].lockBuffOut);
                 if(devicedelfile == 1)
@@ -4598,7 +4568,6 @@ void* CardPacketSend(void *arg)         //查询参数
                 beginsenddevice = 0;
             }
         } while (0);
-
 /**********************发送串号***************************************************************/
         if(beginsendsnrnum)
         {
@@ -4652,7 +4621,6 @@ void* CardPacketSend(void *arg)         //查询参数
                     }
                     next1++;
                 }
-                //DebugPrintf("\n-----hello -----\n");
             }while(terminalstatesre != NULL);
             pthread_mutex_unlock(&sttConnSock[0].lockBuffOut);
             if(terminalstatesdelfile == 1)

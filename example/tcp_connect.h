@@ -38,10 +38,11 @@ static int gIP_change = 1;
 #define BUFSIZE 8192
 #define IPConfigfile_Path "/mnt/ipconfig.inf"			//IP信息配置文件默认目录，同时也是FTP默认目录
 #define UserConfigfile_Path "user.inf"			//用户账号配置信息文件默认目录。同时也是FTP默认目录
+#define PicBackup_Path "/mnt/backup/"
 
 #define NDEBUG  0
 #define STATIC_IP       0
-#define RELEASE_MODE    1
+#define RELEASE_MODE    0
 #define DEBUG_CONN	1
 #define DEBUG_RECV	1
 #define DEBUG_DATA      1
@@ -115,7 +116,8 @@ int user_count;
 int card_errcount;             //连续初始化读卡器错误数
 int reboot_count;              //每天重启次数
 int led_state;
-int device_mode;				//标志设备是开放还是半开放模式 0x01 开放模式	0x00 半开放模式
+int device_mode;                //标志设备是开放还是半开放模式 0x01 开放模式	0x00 半开放模式
+int backup_pic;                 //备份标志图片
 /*视频采集参数*/
 
 int catch_mode;   // 0x01 动态检测  0x00 定时检测
@@ -177,7 +179,7 @@ int _ConnLoop();
 
 void FreeMemForEx();
 
-void* WatchDog(void *arg);
+void* KillThread(void *arg);
 
 void* WavePacketSend(void *arg);
 

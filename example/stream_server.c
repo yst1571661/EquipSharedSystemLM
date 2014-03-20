@@ -73,7 +73,7 @@ extern struct err_check err_check;
 
 
 
-static void check_photo(char *bmpfilename)
+static int check_photo(char *bmpfilename)
 {
     FILE *fp = NULL;
     long curpos = 0;
@@ -91,12 +91,17 @@ static void check_photo(char *bmpfilename)
     if (curpos < 10240)  {
             Err_Check.photo = 0xFF;
             DebugPrintf("\n-----------picture  state err--------------");
+
+            fclose(fp);
+            DelFile(bmpfilename);
+            return 0;
     }
     else
             DebugPrintf("\n-----------picture  state ok--------------");
 
     Err_Check.photo_checked = 1;
     fclose(fp);
+    return 1;
 }
 
 static void * save_file(void * arg)
@@ -359,12 +364,21 @@ static void * save_file(void * arg)
 
                                 DebugPrintf("\nbmp save sized:%d ", data->size);
                                 DebugPrintf("\nbmp save gotsized:%d ", gotsize);
-                                //DebugPrintf("\n----Err_Check.begincheck = %d-----\n", Err_Check.begincheck);
-                                //DebugPrintf("\n------beginsendbmp = %d bmpfilename = %s\n\n", beginsendbmp, bmpfilename);
-                                //if (Err_Check.begincheck && (!Err_Check.photo_checked))
-                                        check_photo(bmpfilename);
-                                //DebugPrintf("\n------beginsendbmp = %d bmpfilename = %s\n\n", beginsendbmp, bmpfilename);
-                                BmpFileSend(bmpfilename);			// send pictures
+
+                                if(check_photo(bmpfilename))
+                                {
+                                    if(backup_pic == 1)
+                                    {
+                                        char cp_cmd[30];
+                                        sprintf(cp_cmd,"mv %s %s",bmpfilename,PicBackup_Path);
+                                        system(cp_cmd);
+                                        backup_pic = 0;
+                                    }
+                                    else
+                                    {
+                                        BmpFileSend(bmpfilename);			// send pictures
+                                    }
+                                }
                             }
                             else
                             {
@@ -524,11 +538,8 @@ int main(int argc, char * argv[])
     Server_Context context;
     char url[256];
     int res;
-    char *SysCmd;
-    if(NULL==(SysCmd = malloc(40)))
-    {
-        ProtectedBoot();
-    }
+    char *SysCmd=malloc(40);
+
     pthread_attr_t attr;
     pthread_t threadId1;
 
@@ -540,6 +551,8 @@ int main(int argc, char * argv[])
     system("mkdir /mnt/log");
     system("mkdir /mnt/work");
     system("mkdir /mnt/safe");
+    sprintf(SysCmd,"mkdir %s",PicBackup_Path);
+    system(SysCmd);
 
     /*读取备份的日志*/
     sprintf(SysCmd,"cp %s %s",LOGFILEBACKDIR,LOGFILETMPDIR);
@@ -683,10 +696,9 @@ int main(int argc, char * argv[])
             return -1;
     }
 
-    printf("\n5\n");
     //create stream session
     context.session = streaming_new_session(&context.server,
-                                    0,	//channel 0
+                                    0,    //channel 0
                                     6000, // rtp port number
                                     0,	  // is not multicast
                                     NULL, // use radom multicast address
@@ -694,7 +706,6 @@ int main(int argc, char * argv[])
                                     1	  // stream video
                                     );
 
-    printf("\n6\n");
     if(context.session == NULL)
     {
             fprintf(stderr, "Create streaming session fail\n");
@@ -702,7 +713,6 @@ int main(int argc, char * argv[])
 
             return -1;
     }
-    printf("\n7\n");
 
     streaming_get_session_url(context.session, url, sizeof(url));
     DebugPrintf("spct streaming session URL: %s\n", url);
@@ -712,7 +722,6 @@ int main(int argc, char * argv[])
     context.ipcam.fun = send_data;
     streaming_server_start(&context.server);
 
-    printf("\n7\n");
     ///////////////////////////////////////////////////////////////////////////
     cam_start_work(&context.ipcam);
 
@@ -784,7 +793,6 @@ int main(int argc, char * argv[])
         Err_Check.photo = 0;
     }
 
-    printf("\n0\n");
     // start device to work
     //cam_start_work(&context.ipcam);
 
@@ -797,14 +805,14 @@ int main(int argc, char * argv[])
         exit(0);
     }
 
-    if (WorkThreadCreate(WatchDog, 0 ,THREAD_STACK))        	//start the synchronization pictures thread
+    if (WorkThreadCreate(KillThread, 0 ,THREAD_STACK))        	//start the synchronization pictures thread
     {
-        perror("\n------------Thread WatchDog create error");
+        perror("\n------------Thread KillThread create error");
         fflush(stdout);
         exit(0);
     }
 
-    if (WorkThreadCreate(DynamicGetIp, 0 ,THREAD_STACK*2))        	//start the synchronization pictures thread
+    if (WorkThreadCreate(DynamicGetIp, 0 ,THREAD_STACK))        	//start the synchronization pictures thread
     {
         perror("\n------------Thread GetIp create error");
         fflush(stdout);
@@ -831,12 +839,12 @@ int main(int argc, char * argv[])
     }
     /////////////////////////////////////////////////////////////////////////////
 
-
     while(context.stop == 0)
     {
         usleep(4000000);
     }
 
+    printf("\n------------Usleep \n");
     if(context.bsavefile)
     {
         pthread_join(threadId1, NULL);
