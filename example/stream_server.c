@@ -87,6 +87,7 @@ static int check_photo(char *bmpfilename)
     fseek(fp,0,SEEK_END); //locate to the end of the file
     curpos = ftell(fp); //the lenth of the file
 
+    DebugPrintf("size = %d\n",curpos);
     Err_Check.photo = 0;
     if (curpos < 10240)  {
             Err_Check.photo = 0xFF;

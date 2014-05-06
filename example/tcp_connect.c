@@ -299,7 +299,7 @@ static int SockPackSend(unsigned char cmdWord, int fdConn, stuConnSock *sttParm,
     tagAddr[6] = packLen & 0xff;
 
 
-#if 1//NDEBUG
+#if NDEBUG
     do {
         if (packLen > 100)
             break;
@@ -312,9 +312,8 @@ static int SockPackSend(unsigned char cmdWord, int fdConn, stuConnSock *sttParm,
     {
         do
         {
-            printf("TO SEND\n");
             curWrite = send(fdConn, tagAddr, packLen-sentLen, 0);
-            printf("curWrite = %d\n",curWrite);
+            //printf("curWrite = %d\n",curWrite);
             usleep(10000);
             if((curWrite<0) && (errno==EAGAIN))
             {
@@ -354,9 +353,9 @@ static void HeartbeatInit(int frequency, int alarmcnts)
     //signal(SIGPIPE, sigPipe);
     struct sigaction sa;
     sa.sa_handler = SIG_IGN;
-    /*收到SIGPIPE信号则去执行SIG_IGN函数*/
+    //忽略SIGPIPE信号，防止出现因客户端关闭而写入失败造成的默认退出行为
     sigaction(SIGPIPE, &sa, 0);
-    /*在reader中止之后写Pipe的时候发送  捕捉SIGPIPE 处理函数SIG_IGN(忽略)*/
+    //忽略SIGCHLD信号，避免僵尸进程
     sigaction(SIGCHLD, &sa, 0);
 }
 
@@ -872,6 +871,15 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
     static int software_seq=0,software_seqtmp=0;		//software_seqtmp stores the sequency of this record,software_seq stores the sequency of last record
     static int byte_count=0;
     static unsigned int byte_all=0;
+
+    /*预约起始时间*/
+    unsigned char order_starttime[15] = {0};
+    /*预约结束时间*/
+    unsigned char order_endtime[15] = {0};
+    unsigned long int order_start = 0;
+    unsigned long int order_end = 0;
+    unsigned long int sys_iTime = atoll(sys_Time);
+
 #if DEBUG_CONN
     DebugPrintf("\n\n----- set case 0x%x -----",dataBuffer[0]);
     PrintScreen("\n\n----- set case 0x%x -----",dataBuffer[0]);
@@ -1426,6 +1434,32 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
             /*将预约时间作为内容*/
             data.dptr = TempDatabuf;
             data.dsize = strlen(TempDatabuf)+1;
+
+            //校验信息是否正确
+            DebugPrintf("\n-----data.dptr = %s----------------",data.dptr);
+
+            strncpy(order_starttime,data.dptr+3,11);
+            DebugPrintf("\n-----order starttime = %s----------",order_starttime);
+            /*得到预约起始时间*/
+            order_start = atoll(order_starttime);
+            DebugPrintf("\n-----order start = %ld-------------",order_start);
+            strncpy(order_endtime,data.dptr+18,11);
+            DebugPrintf("\n-----order endtime = %s------------",order_endtime);
+            /*得到预约结束时间*/
+            order_end = atoll(order_endtime);
+            DebugPrintf("\n-----order end = %ld---------------",order_end);
+
+            DebugPrintf("\n-----sys_Time = %s-----------------",sys_Time);
+
+            if(order_end<=order_start)
+            {
+                DebugPrintf("\n-----time data illegal!\n-----");
+                ansData[0] = 0xFF;
+                db_close(gdbm_ordertimebak);
+                gdbm_ordertimebak = NULL;
+                return ansData;
+                break;
+            }
 
             //pthread_mutex_lock(&ordertime_lock);
             if (db_store(gdbm_ordertimebak, key, data) < 0)
@@ -2171,9 +2205,7 @@ int _ConnLoop()
         carchExEvents = exEvents;
         catchRdEvents = rdEvents;
         //pthread_mutex_unlock(&gspecset_lock);
-        // system("ifconfig eth0 up");
         rtn = select(highConn+1, &catchRdEvents, NULL, &carchExEvents, &tmout);
-        //pthread_mutex_unlock(&gspecset_lock);
 
         if ((rtn<0) && (errno==EINTR))continue;
         if (rtn < 0)
@@ -3093,7 +3125,6 @@ static void card_sent(unsigned char *transBuffer)
                                 pthread_mutex_unlock(&cardfile_lock);
                                 resend_count = 0;
                             }
-                            DebugPrintf("\n-----66666-----");
                             beginsendcard = 0;
                             free(cardrecordre);
                             return;
@@ -3101,7 +3132,6 @@ static void card_sent(unsigned char *transBuffer)
                         }
                         else
                         {
-                            DebugPrintf("\n-----777777-----");
                             //pthread_mutex_lock(&cardfile_lock);
                             //system("cp /tmp/cards.xml /mnt/cards.xml");
                             //pthread_mutex_unlock(&cardfile_lock);
