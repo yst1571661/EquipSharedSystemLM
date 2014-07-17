@@ -12,4 +12,15 @@
 #define NUC951
 #endif
 
+#ifndef VIDEO
+#define VIDEO
+#endif
+
+#ifdef VIDEO
+#ifndef USBVIDEO
+#define USBVIDEO
+#endif
+#endif
+
+
 #endif /* NUC_CONFIG_H_ */

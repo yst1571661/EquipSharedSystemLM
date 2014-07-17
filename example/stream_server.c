@@ -36,6 +36,8 @@
 #include "rtc.h"
 #include "xml.h"
 #include "log.h"
+#include "nuc_config.h"
+#include "v4l2grab.h"
 ///////////////////////////////////////////////////////////////////////////
 
 
@@ -88,7 +90,12 @@ static void check_photo(char *bmpfilename)
     curpos = ftell(fp); //the lenth of the file
 
     Err_Check.photo = 0;
+#ifdef NUC960
     if (curpos < 10240)  {
+#endif
+#ifdef NUC951
+    if (curpos < 8192)  {
+#endif
             Err_Check.photo = 0xFF;
             DebugPrintf("\n-----------picture  state err--------------");
     }
@@ -110,8 +117,11 @@ static void * save_file(void * arg)
         ///////////////////////////////////////////////////////////////////////
         unsigned char * gotbuf;
         int  gotsize;
+#ifdef NUC960
         Decode_Context videodecoder;
+#endif
         int ret;
+        int ret_jpegsize;
         char bmpfilename[50];
         char delfilename[50];
         unsigned char min_time[2];
@@ -134,7 +144,9 @@ static void * save_file(void * arg)
 
 
         unsigned char read_sys_Time[15];
+#ifdef NUC960
         ret = spct_decode_open(SPCT_CODEC_H264, &videodecoder, 0);
+#endif
         if(ret)
         {
                 fprintf(stderr, " Open h264 decoder fail\n");
@@ -166,10 +178,10 @@ static void * save_file(void * arg)
         while(1)
         {
             save_file_count++;
-            if(save_file_count == 50)
+            if(save_file_count == 5000)
             {
                 save_file_count = 0;
-                DebugPrintf("\n----- save_file thread running -----");
+                //DebugPrintf("\n----- save_file thread running -----");
                 PrintScreen("\n----- save_file thread running -----");
             }
             /////////启动灵敏度自校准开始///////////////
@@ -178,6 +190,7 @@ static void * save_file(void * arg)
             //BASIC_LEVEL_ = 24000;
             ////////////////////////
             // get data from data queue
+#ifdef NUC960
             data = dq_get(&context->dq);
             if(data == NULL)
             {
@@ -190,6 +203,7 @@ static void * save_file(void * arg)
                 {
                     if(data->flags == DATA_VIDEO_I)
                     {
+#endif
                         ///////////////////////////////////////////////////////////////////
                         ReadSysTime();
                         memcpy(read_sys_Time, sys_Time, 15);
@@ -223,20 +237,30 @@ static void * save_file(void * arg)
                             premon_time = curmon_time;
                             ////////////////////////////////////////////////////////////
                             DebugPrintf("\n----- curmin_time = %d -----",curmin_time);
+#ifdef NUC960
                             ret = spct_decode(&videodecoder, data->data,
                             data->size, &gotbuf, &gotsize);
+
                             if(ret < 0) // decode error
                             {
                                 DebugPrintf("\n----- decode error -----");
                                 break;
                             }
+
                             if(gotsize != 0) // decoder need more data
                             {
                                 //display one frame
+#endif
                                 //sprintf(bmpfilename, "/mnt/safe/%.12s.jpg", read_sys_Time);
                                 sprintf(bmpfilename, "/mnt/safe/%.14s.jpg", read_sys_Time);
                                 DebugPrintf("\n-----bmpfilename = %s-----", bmpfilename);
-                                YUV2JPEG(gotbuf, 704, 576, bmpfilename);
+#ifdef NUC960
+                                YUV2JPEG(gotbuf, 704, 576, bmpfilename); // save .jpg pictures
+#endif
+#ifdef NUC951
+                                ret_jpegsize = YUV2JPEG(bmpfilename); // save .jpg pictures
+#endif
+#ifdef NUC960
                                 DebugPrintf("\nbmp save gotsized:%d ", gotsize);
                                 //BmpFileSend(bmpfilename);
                             }
@@ -244,6 +268,7 @@ static void * save_file(void * arg)
                             {
                                 DebugPrintf("\n----- decoder need more data -----");
                             }
+#endif
                             //////////////////////////////////////////////////////////////
                         }
                         if(curday_time != preday_time)
@@ -279,8 +304,10 @@ static void * save_file(void * arg)
                                     PrintScreen("\n-----------motion deteced-------------------");
                                     DebugPrintf("\n----- curmin_time = %d   cur_seconds = %ld   pre_seconds = %ld-----",curmin_time, cur_seconds, pre_seconds);
                                     pre_seconds = cur_seconds;
+#ifdef NUC960
                                     ret = spct_decode(&videodecoder, data->data,
                                     data->size, &gotbuf, &gotsize);
+
                                     if(ret < 0) // decode error
                                     {
                                         DebugPrintf("\n----- decode error -----");
@@ -289,23 +316,36 @@ static void * save_file(void * arg)
                                     if(gotsize != 0) // decoder need more data
                                     {
                                         // display one frame
+#endif
                                         //sprintf(bmpfilename, "/tmp/%.12s.jpg", read_sys_Time);
                                     sprintf(bmpfilename, "/tmp/%.14s.jpg", read_sys_Time);
                                     DebugPrintf("\n-----bmpfilename = %s-----\n", bmpfilename);
+#ifdef NUC960
                                     YUV2JPEG(gotbuf, 704, 576, bmpfilename); // save .jpg pictures
+#endif
+#ifdef NUC951
+                                    ret_jpegsize = YUV2JPEG(bmpfilename); // save .jpg pictures
+#endif
+#ifdef NUC960
                                     DebugPrintf("\nbmp save sized:%d ", data->size);
                                     DebugPrintf("\nbmp save gotsized:%d ", gotsize);
+#endif
+#ifdef NUC951
+                                    DebugPrintf("\njpeg save sized:%d ", ret_jpegsize);
+                                    PrintScreen("\njpeg save sized:%d ", ret_jpegsize);
+#endif
 
                                     //if (Err_Check.begincheck && (!Err_Check.photo_checked))
                                     check_photo(bmpfilename);
 
                                     BmpFileSend(bmpfilename);			// send pictures
-
+#ifdef NUC960
                                 }
                                 else
                                 {
                                     DebugPrintf("\n----- decoder need more data -----\n");
                                 }
+#endif
                                 catchonemotion = 0;
                             }
                         }
@@ -319,6 +359,7 @@ static void * save_file(void * arg)
                             #if NDEBUG
                                     DebugPrintf("\n--------catch_freq = %d--------", catch_freq);
                             #endif
+#ifdef NUC960
                             ret = spct_decode(&videodecoder, data->data,
                             data->size, &gotbuf, &gotsize);
                             if(ret < 0) // decode error
@@ -328,26 +369,39 @@ static void * save_file(void * arg)
                             }
                             if(gotsize != 0) // decoder need more data
                             {
+#endif
                                 // display one frame
                                 //sprintf(bmpfilename, "/tmp/%.12s.jpg", read_sys_Time);
                                 sprintf(bmpfilename, "/tmp/%.14s.jpg", read_sys_Time);
                                 DebugPrintf("\n-----bmpfilename = %s-----", bmpfilename);
 
-                                YUV2JPEG(gotbuf, 704, 576, bmpfilename); // save .jpg pictures
-
-                                DebugPrintf("\nbmp save sized:%d ", data->size);
-                                DebugPrintf("\nbmp save gotsized:%d ", gotsize);
+#ifdef NUC960
+                                    YUV2JPEG(gotbuf, 704, 576, bmpfilename); // save .jpg pictures
+#endif
+#ifdef NUC951
+                                    ret_jpegsize = YUV2JPEG(bmpfilename); // save .jpg pictures
+#endif
+#ifdef NUC960
+                                    DebugPrintf("\nbmp save sized:%d ", data->size);
+                                    DebugPrintf("\nbmp save gotsized:%d ", gotsize);
+#endif
+#ifdef NUC951
+                                    DebugPrintf("\njpeg save sized:%d ", ret_jpegsize);
+                                    PrintScreen("\njpeg save sized:%d ", ret_jpegsize);
+#endif
                                 //DebugPrintf("\n----Err_Check.begincheck = %d-----\n", Err_Check.begincheck);
                                 //DebugPrintf("\n------beginsendbmp = %d bmpfilename = %s\n\n", beginsendbmp, bmpfilename);
                                 //if (Err_Check.begincheck && (!Err_Check.photo_checked))
-                                        check_photo(bmpfilename);
+                                    check_photo(bmpfilename);
                                 //DebugPrintf("\n------beginsendbmp = %d bmpfilename = %s\n\n", beginsendbmp, bmpfilename);
-                                BmpFileSend(bmpfilename);			// send pictures
+                                    BmpFileSend(bmpfilename);			// send pictures
+#ifdef NUC960
                             }
                             else
                             {
                                 DebugPrintf("\n----- decoder need more data -----\n");
                             }
+#endif
                         }
                         break;
                     }
@@ -356,6 +410,7 @@ static void * save_file(void * arg)
                     /////////////更新时间/////////////////
                     if(time_change == 1)
                     {
+                        printf("11\n");
                         premin_time = curmin_time;
                         time_change = 0;
                         pre_seconds = cur_seconds;
@@ -385,22 +440,30 @@ static void * save_file(void * arg)
                     {
                         //startsyncbmp = 1;
                         prehou_time = curhou_time;
+#ifdef NUC960
                         if(islink() == 0) // SD卡已挂载
                         {
+#endif
                             system("cp -rf /tmp/*.jpg /mnt/work/");
+#ifdef NUC960
                         }
+#endif
                         system("rm -rf /tmp/*.jpg");
                         beginsavewebpar = 1;
                     }
                 //////////////////////////////////////////////////////////////////////
+#ifdef NUC960
                 }
             }
             // free data from data queue
             dq_pop(&context->dq);
         }
+#endif
     }
     ///////////////////////////////////////////////////////////////////////
+#ifdef NUC960
     spct_decode_close(&videodecoder);
+#endif
     DebugPrintf("\n-----save_file Thread exit-----\n");
     sleep(1);
     ProtectedBoot();
@@ -520,6 +583,9 @@ int main(int argc, char * argv[])
     DebugPrintf("\n-----current time %02d%02d%02d%02d%d.%02d-----", curtime.tm_mon,curtime.tm_mday,curtime.tm_hour,curtime.tm_min,curtime.tm_year,curtime.tm_sec);
     init_card_uart();
     init_gpio_e();
+#ifdef USBVIDEO
+    init_v4l2(IMAGEWIDTH,IMAGEHEIGHT);
+#endif
     /*初始化24c02b*/
     printf("init 24c02b\n");
     if(init_at24c02b() == -1)
@@ -662,21 +728,22 @@ int main(int argc, char * argv[])
     context.pro.sample_rate = 8000; // audio sample rate
     context.pro.bit_rate = 200; 	// bitrate
 
-    /*if(ip_cam_construct(&context.ipcam, "/dev/video1"))
+#ifdef NC960
+    if(ip_cam_construct(&context.ipcam, "/dev/video1"))
     {
             fprintf(stderr, "Open device fail\n");
             return -1;
     }
-    */
+
     // init streaming server
-    /*if(streaming_server_construct(&context.server, 554)) // use default RTSP port
+    if(streaming_server_construct(&context.server, 554)) // use default RTSP port
     {
             fprintf(stderr, "Create srever fail\n");
             return -1;
     }
-    */
+
     // create stream session
-    /*context.session = streaming_new_session(&context.server,
+    context.session = streaming_new_session(&context.server,
                                     0,	//channel 0
                                     6000, // rtp port number
                                     0,	  // is not multicast
@@ -703,13 +770,14 @@ int main(int argc, char * argv[])
 
     ///////////////////////////////////////////////////////////////////////////
     cam_start_work(&context.ipcam);
-    */
+#endif
 
 
-
+#ifdef VIDEO
     /////////////////////////////////////////////////////////////////////////
-    /*if(context.bsavefile) // save file
+    if(context.bsavefile) // save file
     {
+#ifdef NUC960
         // data queue construct
         res = dq_construct(&context.dq,
                         800*1024, // buffer size 800k , must enough to hold 3 or more data
@@ -720,8 +788,8 @@ int main(int argc, char * argv[])
             DebugPrintf("construct data queue fail\n");
             return -1;
         }
-*/
-        /*// file opt construct
+
+        // file opt construct
         res = fileopt_asf_construct(&context.fileopt);
         if(res != 0)
         {
@@ -730,9 +798,9 @@ int main(int argc, char * argv[])
         }
         // create file
         context.fileoptready = fileopt_create(&context.fileopt, context.outfilename, &context.pro);
-        */
+#endif
         // create save file  thread
-/*	pthread_attr_init(&attr);
+        pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
         if((res = pthread_create(&threadId1, &attr, save_file, &context)) != 0)
         {
@@ -740,11 +808,13 @@ int main(int argc, char * argv[])
             return -1;
         }
     }
-    else */
+    else
     {
         Err_Check.issavvideo = 1;
         Err_Check.photo = 0;
     }
+#endif
+
 #if RELEASE_MODE
     if(system("ifconfig eth0 up")!=0)
     {

@@ -1,5 +1,8 @@
+#include "nuc_config.h"
 #ifndef _YUV2BMP_H
 #define _YUV2BMP_H
+
+#ifndef USBVIDEO
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +20,7 @@ typedef struct{
 
 int YUV2JPEG(unsigned char *pSrcBuffer, long width, long height, const char *fileName);
 
+#endif
 
 
 

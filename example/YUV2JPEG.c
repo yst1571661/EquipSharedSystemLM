@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef USBVIDEO
+
 long LimitVal(long srcVal, long minVal, long maxVal)
 {
 	if(srcVal > maxVal)
@@ -205,4 +207,4 @@ int YUV2JPEG(unsigned char *pSrcBuffer, long width, long height, const char *out
 	return 0;
 
   }
-
+#endif

@@ -25,6 +25,7 @@
 #include "xml.h"
 #include "db.h"
 #include "log.h"
+#include "nuc_config.h"
 fd_set rdEvents, exEvents;
 extern unsigned char BCD_decode_tab[];
 typedef struct connectSock
@@ -2678,49 +2679,47 @@ void BmpFileSend(char * bmpfilename)
     {
     if (sttConnSock[0].fdSock <= 0)
         return;
-            transBuffer[0] = 0x00;
-            transBuffer[1] = 0x01;
-            transBuffer[2] = 0x05;
-            /*memcpy(sendfilename,bmpfilename,17);
-            memcpy(sendfilename,bmpfilename,18);
-            transBuffer[3] = (sendfilename[5] - 48)*10 + sendfilename[6] - 48;
-            transBuffer[4] = (sendfilename[7] - 48)*10 + sendfilename[8] - 48;
-            transBuffer[5] = (sendfilename[9] - 48)*10 + sendfilename[10] - 48;
-            transBuffer[6] = (sendfilename[11] - 48)*10 + sendfilename[12] - 48;
-            transBuffer[7] = (sendfilename[13] - 48)*10 + sendfilename[14] - 48;
-            transBuffer[8] = (sendfilename[15] - 48)*10 + sendfilename[16] - 48;
-            */
-            memcpy(sendfilename,bmpfilename,19);
-            transBuffer[8] = (sendfilename[17] - 48)*10 + sendfilename[18] - 48;
-            transBuffer[3] = (sendfilename[7] - 48)*10 + sendfilename[8] - 48;
-            transBuffer[4] = (sendfilename[9] - 48)*10 + sendfilename[10] - 48;
-            transBuffer[5] = (sendfilename[11] - 48)*10 + sendfilename[12] - 48;
-            transBuffer[6] = (sendfilename[13] - 48)*10 + sendfilename[14] - 48;
-            transBuffer[7] = (sendfilename[15] - 48)*10 + sendfilename[16] - 48;
+    transBuffer[0] = 0x00;
+    transBuffer[1] = 0x01;
+    transBuffer[2] = 0x05;
+    /*memcpy(sendfilename,bmpfilename,17);
+    memcpy(sendfilename,bmpfilename,18);
+    transBuffer[3] = (sendfilename[5] - 48)*10 + sendfilename[6] - 48;
+    transBuffer[4] = (sendfilename[7] - 48)*10 + sendfilename[8] - 48;
+    transBuffer[5] = (sendfilename[9] - 48)*10 + sendfilename[10] - 48;
+    transBuffer[6] = (sendfilename[11] - 48)*10 + sendfilename[12] - 48;
+    transBuffer[7] = (sendfilename[13] - 48)*10 + sendfilename[14] - 48;
+    transBuffer[8] = (sendfilename[15] - 48)*10 + sendfilename[16] - 48;
+    */
+    memcpy(sendfilename,bmpfilename,19);
+    transBuffer[8] = (sendfilename[17] - 48)*10 + sendfilename[18] - 48;
+    transBuffer[3] = (sendfilename[7] - 48)*10 + sendfilename[8] - 48;
+    transBuffer[4] = (sendfilename[9] - 48)*10 + sendfilename[10] - 48;
+    transBuffer[5] = (sendfilename[11] - 48)*10 + sendfilename[12] - 48;
+    transBuffer[6] = (sendfilename[13] - 48)*10 + sendfilename[14] - 48;
+    transBuffer[7] = (sendfilename[15] - 48)*10 + sendfilename[16] - 48;
 
-            output = fopen (bmpfilename, "ab+");
-            pthread_mutex_lock(&sttConnSock[0].lockBuffOut);
-            //DebugPrintf("\n--- begin send bmpfilename =  %s ---\n",bmpfilename);
-            while(!feof(output))
+    output = fopen (bmpfilename, "ab+");
+    pthread_mutex_lock(&sttConnSock[0].lockBuffOut);
+    //DebugPrintf("\n--- begin send bmpfilename =  %s ---\n",bmpfilename);
+    while(!feof(output))
+    {
+        freadcount = fread(transBuffer+9, 1,1000, output);
+        //DebugPrintf("\n--- freadcount =  %d ---\n",freadcount);
+        for (Loopi=0; Loopi<MAX_LINK_SOCK; Loopi++)
+        {
+            if (sttConnSock[Loopi].fdSock>0 && sttConnSock[Loopi].loginLegal>0)
             {
-                    freadcount = fread(transBuffer+9, 1,1000, output);
-                    //DebugPrintf("\n--- freadcount =  %d ---\n",freadcount);
-                    for (Loopi=0; Loopi<MAX_LINK_SOCK; Loopi++)
-                    {
-
-                            if (sttConnSock[Loopi].fdSock>0 && sttConnSock[Loopi].loginLegal>0)
-                            {
-                                    //pthread_mutex_lock(&sttConnSock[Loopi].lockBuffOut);
-                                    SockPackSend(CMD_ACK, sttConnSock[Loopi].fdSock, &sttConnSock[Loopi], transBuffer, freadcount+9);
-                                    //pthread_mutex_unlock(&sttConnSock[Loopi].lockBuffOut);
-
-                            }
-                    }
+                //pthread_mutex_lock(&sttConnSock[Loopi].lockBuffOut);
+                SockPackSend(CMD_ACK, sttConnSock[Loopi].fdSock, &sttConnSock[Loopi], transBuffer, freadcount+9);
+                //pthread_mutex_unlock(&sttConnSock[Loopi].lockBuffOut);
             }
-            fclose (output);
-            DebugPrintf("\n--- end send bmpfilename =  %s ---",bmpfilename);
-            pthread_mutex_unlock(&sttConnSock[0].lockBuffOut);
-            DelFile(bmpfilename);
+        }
+    }
+    fclose (output);
+    DebugPrintf("\n--- end send bmpfilename =  %s ---",bmpfilename);
+    pthread_mutex_unlock(&sttConnSock[0].lockBuffOut);
+    DelFile(bmpfilename);
     }
 }
 
@@ -3303,8 +3302,8 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
                 /********************************************************************/
             }
 
-            while(0)
-            //while(startsyncbmp) // 同步图片使能
+#ifdef VIDEO
+            while(startsyncbmp) // 同步图片使能
             {
                 if (sttConnSock[0].fdSock <= 0)
                     break;
@@ -3363,6 +3362,7 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
             closedir(dir);
             startsyncbmp = 0;
         }
+#endif
         sleep(1);
         ////////////////////////////////////////////////////////////////////////////
         }
