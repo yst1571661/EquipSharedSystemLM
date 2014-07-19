@@ -3616,11 +3616,6 @@ void* WatchDog(void *arg)
                 }
             }
             /*ping 服务器及网关，只要有一个通就说明网络是通的*/
-#if RELEASE_MODE
-#else
-        PrintScreen("\n----- PingServerRet1 = %d -----\n",PingServerRet);
-        PrintScreen("\n----- PingGateRet1 = %d -----\n",PingGateRet);
-#endif
 
             if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
                (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
@@ -3644,7 +3639,7 @@ void* WatchDog(void *arg)
                         system(cmd);
                     }
                 }
-#if RELEASE_MODE
+#if 0//RELEASE_MODE
                 DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
 #else
@@ -3688,11 +3683,6 @@ void* DynamicGetIp(void *arg)
         /*检测是否与服务器连接*/
         PingServerRet = system("ping 58.192.119.146");
         PingGateRet = system("ping 223.3.32.1");
-#if RELEASE_MODE
-#else
-        PrintScreen("\n----- PingServerRet = %d -----\n",PingServerRet);
-        PrintScreen("\n----- PingGateRet = %d -----\n",PingGateRet);
-#endif
         /*ping 服务器及网关，只要有一个通就说明网络是通的*/
         if((PingServerRet!=-1)&&(WIFEXITED(PingServerRet))&&(WEXITSTATUS(PingServerRet)==0)|
            (PingGateRet!=-1)&&(WIFEXITED(PingGateRet))&&(WEXITSTATUS(PingGateRet)==0))
@@ -3743,10 +3733,6 @@ void* DynamicGetIp(void *arg)
                 perror("\nwait error\n");
             PrintScreen("PidGetIp = %d\n",PidGetIp);
             PidGetIp = 0;
-#if RELEASE_MODE
-#else
-                PrintScreen("\n----- IpRet = %d -----\n",IpRet);
-#endif
         }
         sleep(20);
     }

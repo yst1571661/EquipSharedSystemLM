@@ -144,6 +144,7 @@ void log_error_core(int level , const char *file, const char *fun, int line, con
     if (level >= DEBUG_LAST)
         return;
 
+    printf("1\n");
     errstr[0] = '\n';
     errstr[1] = '\r';
 

@@ -46,15 +46,14 @@ static int gIP_change = 1;
 #define DEBUG_CONN	1
 #define DEBUG_RECV	1
 #define DEBUG_DATA      1
-#define DEBUG_LOG	1							//1:output log	0:output screen
+#define DEBUG_LOG	1
+#define BACKUPINTERVEL  1							//1:output log	0:output screen
 
 
 #if  			RELEASE_MODE
 #define DebugPrintf(args...)	log_error(LOG_DEBUG,##args)
-#define BACKUPINTERVEL  1
 #define SCREEN_INFO     1                               //1:output screen	important information	0:don't output information	on screen
 #else
-#define BACKUPINTERVEL  1
 #define DebugPrintf	printf
 #define SCREEN_INFO     0
 #endif
