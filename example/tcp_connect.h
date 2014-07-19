@@ -35,14 +35,14 @@ static int gmax_nalarms;
 static int gIP_change = 1;
 
 
-
+#define USER_CARD_NUM  8              //IC卡物理卡号字节数
 #define BUFSIZE 8192
 #define IPConfigfile_Path "/mnt/ipconfig.inf"			//IP信息配置文件默认目录，同时也是FTP默认目录
 #define UserConfigfile_Path "user.inf"			//用户账号配置信息文件默认目录。同时也是FTP默认目录
 
 #define NDEBUG  0
 #define STATIC_IP       0
-#define RELEASE_MODE    1
+#define RELEASE_MODE    0
 #define DEBUG_CONN	1
 #define DEBUG_RECV	1
 #define DEBUG_DATA      1

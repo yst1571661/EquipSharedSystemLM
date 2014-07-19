@@ -25,6 +25,7 @@
 #include "xml.h"
 #include "db.h"
 #include "log.h"
+#include "card_test.h"
 fd_set rdEvents, exEvents;
 extern unsigned char BCD_decode_tab[];
 typedef struct connectSock
@@ -3595,7 +3596,9 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
+#if RELEASE_MODE
         system("echo xxx > /dev/watchdog");
+#endif
         ReadSysTime();
 
         if(sys_tm->tm_sec<=4)

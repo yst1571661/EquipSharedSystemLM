@@ -12,7 +12,7 @@
 #include "nuc_config.h"
 
 
-#ifdef NUC951
+#ifndef NUC100_READER
 
 #define DEBUG_ICDEV
 
@@ -297,7 +297,7 @@ unsigned long CardRead()
 	return card;
 }
 
-void card_beep(unsigned char ms)
+void card_beep(int ms)
 {
         int ret,i;
 	unsigned char buffer[100];

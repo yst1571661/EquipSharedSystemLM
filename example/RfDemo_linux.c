@@ -10,8 +10,9 @@
 #include <sys/stat.h>
 #include <string.h>
 #include "librf.h"
+#include "nuc_config.h"
 #include "card_test.h"
-#ifndef NUC951
+#ifdef NUC100_READER
 
 static int icdev = -1;
 extern unsigned char BCD_decode_tab[];
@@ -60,7 +61,7 @@ int init_card_uart()
 
 }
 
-int CardRead()
+unsigned long CardRead()
 {
     unsigned int tagtype;
     unsigned long cardsnr = 0;
