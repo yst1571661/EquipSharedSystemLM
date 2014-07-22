@@ -12,7 +12,7 @@
 #include "librf.h"
 #include "nuc_config.h"
 #include "card_test.h"
-#ifdef NUC100_READER
+#ifndef NUC100_READER
 
 static int icdev = -1;
 extern unsigned char BCD_decode_tab[];

@@ -12,7 +12,7 @@
 #include "nuc_config.h"
 
 
-#ifndef NUC100_READER
+#ifdef NUC100_READER
 
 #define DEBUG_ICDEV
 
