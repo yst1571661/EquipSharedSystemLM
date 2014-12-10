@@ -1231,14 +1231,14 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
                 user_version = 0;
                 break;
             }
-            memset(TempBuffer, 0, KEY_SIZE_MAX);
-            memcpy(TempBuffer, "user_version", strlen("user_version"));
-            //data.dsize = sizeof(user_version);
-            //data.dptr = (char*)(&user_version);
+            //memset(TempBuffer, 0, KEY_SIZE_MAX);
+            //memcpy(TempBuffer, "user_version", strlen("user_version"));
 
             key.dptr = "user_version";
             key.dsize =strlen("user_version") + 1;
-            data = key;
+			
+	    sprintf(data.dptr,"%x",user_version);
+            data.dsize = strlen(data.dptr)+1;
             if (db_store(gdbm_usrbak, key, data) < 0)
             {
                 ansData[0] = 0xFF;
@@ -3283,12 +3283,6 @@ static void check_ordertime(unsigned long cur_cardsnr,unsigned char *cardrecordw
         {
             /////////////////////////////////////////////////
 
-            //self_check(action_fd);
-            //if (!is_redict)
-            //{					//启动线程时先得设定灵敏度
-                //sleep(1);
-                //continue;
-            //}
             /*********************** err check send *******************************/
             board_check(transBuffer);
             /**********************************************************************/
@@ -3596,9 +3590,6 @@ void* WatchDog(void *arg)
         {
             PrintScreen("\n-----Watch Dog Thread Running-----\n");
         }
-#if RELEASE_MODE
-        system("echo xxx > /dev/watchdog");
-#endif
         ReadSysTime();
 
         if(sys_tm->tm_sec<=4)
@@ -3608,6 +3599,7 @@ void* WatchDog(void *arg)
             {
                 if(sys_tm->tm_hour!=0)
                 {
+                    user_version = 0; //每小时均重新更新用户版本号
                     PrintScreen("\nReboot Time:*****  %d  *****\n",read_at24c02b(243));
                     DebugPrintf("\nReboot Time:*****  %d  *****\n",read_at24c02b(243));
                 }
@@ -3630,8 +3622,8 @@ void* WatchDog(void *arg)
             {
                 IpFlag = 0;
                 LoopTime = 0;
-                DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
-                            LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
+                DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_min = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
+                            LoopTime,sys_tm->tm_hour,sys_tm->tm_min,sys_tm->tm_wday,sys_tm->tm_sec);
             }
             else
             {
@@ -3651,8 +3643,8 @@ void* WatchDog(void *arg)
                 DebugPrintf("\n-----LoopTime = %d\n-----sys_tm->tm_sec = %d\n",
                             LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
 #else
-                PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
-                            LoopTime,sys_tm->tm_hour,sys_tm->tm_wday,sys_tm->tm_sec);
+                PrintScreen("\n-----LoopTime = %d\n-----sys_tm->tm_hour = %d\n-----sys_tm->tm_min = %d\n-----sys_tm->tm_wday = %d\n-----sys_tm->tm_sec = %d\n",
+                            LoopTime,sys_tm->tm_hour,sys_tm->tm_min,sys_tm->tm_wday,sys_tm->tm_sec);
 #endif
                 LoopTime++;
                 if((LoopTime>=60)&&((sys_tm->tm_hour<8)||(sys_tm->tm_hour>17) || (sys_tm->tm_hour==12) || (sys_tm->tm_wday==0)||(sys_tm->tm_wday==6)))
@@ -3663,6 +3655,7 @@ void* WatchDog(void *arg)
                 }
                 else if((sys_tm->tm_hour==2)&&(sys_tm->tm_min)==20)
                 {
+                    /* 每天定时重启 */
                     ProtectedBoot();
                 }
             }
@@ -3712,28 +3705,14 @@ void* DynamicGetIp(void *arg)
                 perror("\n----fork udhcpc error!----\n");
                 DebugPrintf("\n----fork udhcpc error!----\n%s\n",strerror(errno));
                 ForkerrorTime++;
-                /*200次重启网络失败就重启终端*/
-                if(ForkerrorTime>=200)
+                /*20次失败就重启终端*/
+                if(ForkerrorTime>=20)
                 {
                     DebugPrintf("\n-----Too many fork error!-----\n");
                     if(led_state==1||(sys_tm->tm_hour<8)||(sys_tm->tm_hour>17))
                         ProtectedBoot();
                     else
-                        ForkerrorTime=150;
-                }
-                /*2次fork失败就重启网络*/
-                else
-                {
-                    if(ForkerrorTime%100==0)
-                    {
-                        /*禁用设备*/
-                        if(system("ifconfig eth0 down")!=0)
-                            DebugPrintf("\nsystem(1) error\n%s\n",strerror(errno));
-
-                        /*激活设备*/
-                        if(system("ifconfig eth0 up")!=0)
-                            DebugPrintf("\nsystem(2) error\n%s\n",strerror(errno));
-                    }
+                        ForkerrorTime=15;
                 }
             }
             else if(PidGetIp == 0)
@@ -3849,24 +3828,26 @@ void* CardPacketSend(void *arg)         //查询参数
         DebugPrintf("\n-----user.xml open err-----\n");
     }
     else {
-        /*取队列第一个key*/
+        /*取user_version 的key*/
         data = gdbm_fetch(gdbm_user, key);
         if (data.dptr == NULL) {
-            /*第一个key为空则删除数据库，新建数据库*/
+            /*若第一个key为空表示数据库丢失，需要重新初始化数据*/
             db_close(gdbm_user);
             system("rm /tmp/user.xml");
             gdbm_user = db_open("/tmp/user.xml");
             user_version = 0;
-            data = key;
+            data.dptr = "000000000000";
+	    data.dsize = strlen(data.dptr);
+		
             /*初始化数据库头*/
             if (db_store(gdbm_user, key, data) < 0) {
                 DebugPrintf("\n-----there is no user.xml open err-----\n");
             }
             else
                 DebugPrintf("\n----user xml now store success-----\n");
-                // system("cp /tmp/user.xml /mnt/user.xml");
         }
         else {
+	    sscanf(data.dptr,"%x",&user_version);
             free(data.dptr);
 #if NDEBUG
             DebugPrintf("\n-----open user.xml successful------\n");
@@ -3878,7 +3859,7 @@ void* CardPacketSend(void *arg)         //查询参数
 
     if (gdbm_device == NULL) {
         system("rm /tmp/devices.xml");
-        gdbm_user = db_open("/tmp/devices.xml");
+        gdbm_device = db_open("/tmp/devices.xml");
         DebugPrintf("\n-----device.xml open err-----\n");
     }
     /*打开读卡数据库*/
@@ -3960,6 +3941,18 @@ void* CardPacketSend(void *arg)         //查询参数
             cardcount = 0;
             if(!beginupload)
             {
+#if RELEASE_MODE
+	        system("echo xxx > /dev/watchdog");
+#else
+    		static int userver_timecount = 0;
+   			userver_timecount++;
+   			if( userver_timecount > 5)
+		   	{
+		   		userver_timecount = 0;
+		   		printf("\r\nuser version = %x",user_version);
+		   	}
+
+#endif
                 /*读取卡号*/
                 cur_cardsnr = CardRead();
             }
@@ -4457,11 +4450,7 @@ void* CardPacketSend(void *arg)         //查询参数
                 DebugPrintf("\n-----!!update user successful-----\n");
                 PrintScreen("\n-----!!updata user.xml----\n");
             }
-
-            write_at24c02b(232, (user_version >> 24) & 0xFF);
-            write_at24c02b(233, (user_version >> 16) & 0xFF);
-            write_at24c02b(234, (user_version >> 8) & 0xFF);
-            write_at24c02b(235, (user_version ) & 0xFF);
+			
             update_user_xml = 0;
         }
         if(updata_ordertime_xml)

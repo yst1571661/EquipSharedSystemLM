@@ -537,13 +537,8 @@ int main(int argc, char * argv[])
         catch_freq += read_at24c02b(229);
         BASIC_LEVEL_ = ((read_at24c02b(230) << 8) & 0xFF00);
         BASIC_LEVEL_ += read_at24c02b(231);
-        user_version = (read_at24c02b(232) << 24)& 0xFF000000;
-        user_version +=  (read_at24c02b(233) << 16)& 0xFF0000;
-        user_version +=  (read_at24c02b(234) << 8)& 0xFF00;
-        user_version +=  (read_at24c02b(235))& 0xFF;
-
-        if (user_version == 0xFFFFFFFF)
-            user_version = 0;
+		
+        user_version = 0;
         card_tlimit = ((read_at24c02b(220) << 8) & 0xFF00);
         card_tlimit += read_at24c02b(221);
         if (card_tlimit == 65535)
