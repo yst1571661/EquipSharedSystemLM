@@ -860,7 +860,6 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
     //char TempData[40] = {0};
     int temp = 0;
     int Loopi = 0;
-	unsigned char res = 0;
     datum data;
     datum key;
     static int software_seq=0,software_seqtmp=0;		//software_seqtmp stores the sequency of this record,software_seq stores the sequency of last record
@@ -1610,10 +1609,11 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
             write_at24c02b(236,0);
 #ifdef NUC951
 			bootinfo_file = fopen(BOOT_INFO_PATH,"r");
+			memset(TempDatabuf,0,sizeof(TempDatabuf));
 			fread(TempDatabuf,BOOT_PATH_LEN,1,bootinfo_file);
-			res = strcmp("/var/server_gz\n",TempDatabuf);
+			re = strcmp("/var/server_gz\n",TempDatabuf);
 			/* 根据boot_info信息拷贝系统文件 */
-			if( res == 0 )
+			if( re == 0 )
 			{
 				system("cp /tmp/Tmp_Soft /var/server_gz");
 			}
@@ -1641,6 +1641,19 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
             write_at24c02b(86,dataBuffer[2]);
             write_at24c02b(87,dataBuffer[3]);
             write_at24c02b(88,dataBuffer[4]);
+
+            software_version = (dataBuffer[1] << 24)& 0xFF000000;
+            software_version +=  (dataBuffer[2] << 16)& 0xFF0000;
+            software_version +=  (dataBuffer[3] << 8)& 0xFF00;
+            software_version +=  dataBuffer[4]& 0xFF;
+
+			/* 记录更新日志 */
+			memset(TempDatabuf,0,sizeof(TempDatabuf));
+			sprintf(TempDatabuf,"echo \"\n\nUPDATE VER:%x\n\" >> %s",software_version,UPDATE_LOG);
+			system(TempDatabuf);
+			memset(TempDatabuf,0,sizeof(TempDatabuf));
+			sprintf(TempDatabuf,"echo `date` >> %s",UPDATE_LOG);
+			system(TempDatabuf);
 
             beginupload = 0;
 #if DEBUG_DATA

@@ -53,7 +53,7 @@ static int gIP_change = 1;
 /* 存储功能相关宏 */
 #define BOOT_INFO_PATH "/var/data/boot.info"
 #define BOOT_PATH_LEN 18
-
+#define UPDATE_LOG "/var/data/update.log"
 
 
 #if  			RELEASE_MODE

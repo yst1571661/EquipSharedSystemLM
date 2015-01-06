@@ -3,10 +3,12 @@ path1=`cat /var/data/boot.info`
 path2="/var/server_gz"
 if  [ $path1 = $path2  ]
 then
-	echo "Change path to /var/server_gz_bak"
+	echo "\nChange path to /var/server_gz_bak\n" >> update.log
+	echo `date` >> update.log
 	echo "/var/server_gz_bak" > /var/data/boot.info
 else 
-	echo "Change path to /var/sever_gz"
+	echo "\nChange path to /var/sever_gz\n" >> update.log
+	echo `date` >> update.log
 	echo "/var/server_gz" > /var/data/boot.info
 fi
 
