@@ -7,6 +7,7 @@
 #include<fcntl.h>
 
 #define NUC951
+/* 网络通信相关宏 */
 #define PORT           7000                       //监听端口
 #define MAX_LINK_SOCK  1
 #define RECV_BUFF_SIZE 1024*1200
@@ -40,6 +41,7 @@ static int gIP_change = 1;
 #define IPConfigfile_Path "/mnt/ipconfig.inf"			//IP信息配置文件默认目录，同时也是FTP默认目录
 #define UserConfigfile_Path "user.inf"			//用户账号配置信息文件默认目录。同时也是FTP默认目录
 
+/* 调试相关宏 */
 #define NDEBUG  0
 #define STATIC_IP       0
 #define RELEASE_MODE    1
@@ -47,6 +49,11 @@ static int gIP_change = 1;
 #define DEBUG_RECV	1
 #define DEBUG_DATA      1
 #define DEBUG_LOG	1							//1:output log	0:output screen
+
+/* 存储功能相关宏 */
+#define BOOT_INFO_PATH "/var/data/boot.info"
+#define BOOT_PATH_LEN 18
+
 
 
 #if  			RELEASE_MODE

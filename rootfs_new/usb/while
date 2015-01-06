@@ -1,0 +1,14 @@
+#!/bin/sh
+while [ 1 -lt 2 ]
+do
+  cd /tmp
+  cp `cat /var/data/boot.info` ./
+  sleep 1
+  tar zxvf server*
+  rm server*
+  ./stream_server -s
+  if [ $? -ne 0 ]
+  then 
+	./change_path
+  fi
+done

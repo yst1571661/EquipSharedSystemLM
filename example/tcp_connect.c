@@ -853,13 +853,14 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
 {
     int re = 0;
     char *ansData;
-
+	FILE* bootinfo_file = NULL;
     *length = 0;
     char TempDatabuf[80] = {0};
     char TempBuffer[80] = {0};
     //char TempData[40] = {0};
     int temp = 0;
     int Loopi = 0;
+	unsigned char res = 0;
     datum data;
     datum key;
     static int software_seq=0,software_seqtmp=0;		//software_seqtmp stores the sequency of this record,software_seq stores the sequency of last record
@@ -1608,7 +1609,19 @@ char *set_Para(const char *dataBuffer,int dataLenth,unsigned int *length)
             /*set update bit,shows the program has not been updated*/
             write_at24c02b(236,0);
 #ifdef NUC951
-            system("cp /tmp/Tmp_Soft /var/server_gz");
+			bootinfo_file = fopen(BOOT_INFO_PATH,"r");
+			fread(TempDatabuf,BOOT_PATH_LEN,1,bootinfo_file);
+			res = strcmp("/var/server_gz\n",TempDatabuf);
+			/* 根据boot_info信息拷贝系统文件 */
+			if( res == 0 )
+			{
+				system("cp /tmp/Tmp_Soft /var/server_gz");
+			}
+			else
+			{
+			    system("cp /tmp/Tmp_Soft /var/server_gz_bak");
+			}
+			fclose(bootinfo_file);
 #else
             /*eraze nor flash:1.5M*/
             sprintf(cmdtmp,"/usb/./mtd_debug erase /dev/mtd0 0x0290000 0x150000");
@@ -3939,10 +3952,10 @@ void* CardPacketSend(void *arg)         //查询参数
             }
 
             cardcount = 0;
-            if(!beginupload)
-            {
 #if RELEASE_MODE
 	        system("echo xxx > /dev/watchdog");
+            if(!beginupload)
+            {
 #else
     		static int userver_timecount = 0;
    			userver_timecount++;

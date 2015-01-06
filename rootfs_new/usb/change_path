@@ -1,0 +1,12 @@
+#!/bin/sh
+path1=`cat /var/data/boot.info`
+path2="/var/server_gz"
+if  [ $path1 = $path2  ]
+then
+	echo "Change path to /var/server_gz_bak"
+	echo "/var/server_gz_bak" > /var/data/boot.info
+else 
+	echo "Change path to /var/sever_gz"
+	echo "/var/server_gz" > /var/data/boot.info
+fi
+
